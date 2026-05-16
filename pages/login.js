@@ -13,8 +13,7 @@ export default function LoginPage() {
     });
     const data = await res.json();
     if (data.success) {
-      // Após login, vai para o dashboard
-      window.location.href = "/dashboard";
+      window.location.href = "/dashboard"; // vai para o menu inicial
     } else {
       alert("Usuário ou senha inválidos");
     }
