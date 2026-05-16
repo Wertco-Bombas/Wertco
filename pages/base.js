@@ -10,7 +10,11 @@ export default function Base() {
     { id: 3, category: "Instalação", title: "P8", description: "Erro de instalação." }
   ]);
 
-  // lógica de pesquisa e filtro
+  const [modal, setModal] = useState(null); // controla qual modal está aberto
+  const [newTopic, setNewTopic] = useState({ title: "", description: "", category: "HTML" });
+  const [newCategory, setNewCategory] = useState("");
+  const [deleteCat, setDeleteCat] = useState("HTML");
+
   const filteredTopics = topics.filter(t => {
     const matchesSearch =
       t.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -19,39 +23,32 @@ export default function Base() {
     return matchesSearch && matchesFilter;
   });
 
-  // adicionar novo tópico
-  function addTopic() {
-    const title = prompt("Digite o título do novo tópico:");
-    const description = prompt("Digite a descrição:");
-    const category = prompt("Digite a categoria:");
-    if (title && description && category) {
-      setTopics([...topics, { id: topics.length + 1, category, title, description }]);
-      if (!categories.includes(category)) {
-        setCategories([...categories, category]);
+  function saveTopic() {
+    if (newTopic.title && newTopic.description) {
+      setTopics([...topics, { id: topics.length + 1, ...newTopic }]);
+      if (!categories.includes(newTopic.category)) {
+        setCategories([...categories, newTopic.category]);
       }
+      setModal(null);
     }
   }
 
-  // adicionar nova categoria
-  function addCategory() {
-    const newCat = prompt("Digite o nome da nova categoria:");
-    if (newCat && !categories.includes(newCat)) {
-      setCategories([...categories, newCat]);
+  function saveCategory() {
+    if (newCategory && !categories.includes(newCategory)) {
+      setCategories([...categories, newCategory]);
+      setModal(null);
     }
   }
 
-  // excluir categoria
-  function deleteCategory() {
-    const cat = prompt("Digite o nome da categoria a excluir:");
-    if (cat && categories.includes(cat)) {
-      setCategories(categories.filter(c => c !== cat));
-      setTopics(topics.filter(t => t.category !== cat));
-    }
+  function removeCategory() {
+    setCategories(categories.filter(c => c !== deleteCat));
+    setTopics(topics.filter(t => t.category !== deleteCat));
+    setModal(null);
   }
 
   return (
     <div className="base-container">
-      {/* Topo com navegação centralizada */}
+      {/* Topo */}
       <header className="navbar">
         <ul className="nav-links">
           <li>Base de conhecimento</li>
@@ -61,7 +58,7 @@ export default function Base() {
         </ul>
       </header>
 
-      {/* Barra de pesquisa */}
+      {/* Pesquisa */}
       <div className="search-bar">
         <input
           type="text"
@@ -71,7 +68,7 @@ export default function Base() {
         />
       </div>
 
-      {/* Filtro e botões de ação */}
+      {/* Filtro e ações */}
       <div className="actions">
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="Todas">Todas as categorias</option>
@@ -79,9 +76,9 @@ export default function Base() {
             <option key={i} value={c}>{c}</option>
           ))}
         </select>
-        <button onClick={addTopic}>+ Novo Tópico</button>
-        <button onClick={addCategory}>+ Nova Categoria</button>
-        <button onClick={deleteCategory}>Excluir Categoria</button>
+        <button onClick={() => setModal("topic")}>+ Novo Tópico</button>
+        <button onClick={() => setModal("category")}>+ Nova Categoria</button>
+        <button onClick={() => setModal("delete")}>Excluir Categoria</button>
       </div>
 
       {/* Lista de tópicos */}
@@ -97,6 +94,74 @@ export default function Base() {
           </section>
         ))}
       </main>
+
+      {/* Modais */}
+      {modal === "topic" && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Novo Tópico</h2>
+            <input
+              type="text"
+              placeholder="Título"
+              value={newTopic.title}
+              onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })}
+            />
+            <input
+              type="text"
+              placeholder="Descrição"
+              value={newTopic.description}
+              onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })}
+            />
+            <select
+              value={newTopic.category}
+              onChange={(e) => setNewTopic({ ...newTopic, category: e.target.value })}
+            >
+              {categories.map((c, i) => (
+                <option key={i} value={c}>{c}</option>
+              ))}
+            </select>
+            <div className="modal-buttons">
+              <button onClick={saveTopic}>Salvar</button>
+              <button onClick={() => setModal(null)}>Voltar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal === "category" && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Nova Categoria</h2>
+            <input
+              type="text"
+              placeholder="Nome da categoria"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+            />
+            <div className="modal-buttons">
+              <button onClick={saveCategory}>Salvar</button>
+              <button onClick={() => setModal(null)}>Voltar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal === "delete" && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Excluir Categoria</h2>
+            <select value={deleteCat} onChange={(e) => setDeleteCat(e.target.value)}>
+              {categories.map((c, i) => (
+                <option key={i} value={c}>{c}</option>
+              ))}
+            </select>
+            <div className="modal-buttons">
+              <button onClick={removeCategory}>Excluir</button>
+              <button onClick={() => setModal(null)}>Voltar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
