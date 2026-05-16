@@ -2,12 +2,12 @@
 .navbar {
   background-color: #000;
   padding: 15px 20px;
-  text-align: center; /* centraliza conteúdo */
+  text-align: center;
 }
 
 .nav-links {
   list-style: none;
-  display: inline-flex; /* centraliza horizontalmente */
+  display: inline-flex;
   gap: 40px;
   margin: 0;
   padding: 0;
@@ -27,7 +27,7 @@
 }
 
 .search-bar input {
-  width: 80%; /* ocupa boa parte da largura */
+  width: 80%;
   padding: 10px;
   border-radius: 6px;
   border: 1px solid #ccc;
@@ -36,7 +36,7 @@
 /* Botões de ação */
 .actions {
   padding: 15px 20px;
-  text-align: center; /* centraliza botões */
+  text-align: center;
 }
 
 .actions button {
@@ -53,53 +53,41 @@
   background: #666;
 }
 
-/* Layout principal */
+/* Área principal */
 .base-container {
-  display: flex;
   background-color: #111;
   min-height: 100vh;
+  color: #f1c40f;
 }
 
 .content {
-  flex: 3;
   padding: 20px;
 }
 
-.category {
+.topic {
   background: #000;
   padding: 15px;
   margin-bottom: 20px;
   border-radius: 6px;
-  color: #f1c40f;
 }
 
 .comments {
   margin-top: 10px;
 }
 
+.comments input {
+  padding: 8px;
+  width: 60%;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  margin-right: 10px;
+}
+
 .comments button {
-  margin-right: 5px;
-  padding: 6px 10px;
+  padding: 8px 12px;
   background: #f1c40f;
   color: #000;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-}
-
-.comments input {
-  margin-top: 10px;
-  padding: 8px;
-  width: 60%;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-/* Sidebar */
-.sidebar {
-  flex: 1;
-  background: #000;
-  padding: 20px;
-  border-left: 2px solid #f1c40f;
-  color: #f1c40f;
 }
