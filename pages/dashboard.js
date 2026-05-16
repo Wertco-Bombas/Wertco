@@ -12,9 +12,23 @@ export default function Dashboard(){
           <div className="logoText">Don</div>
         </div>
 
-        <div className="userInfo">
-          Administrador <span className="admin">(Admin)</span>
-        </div>
+     <div
+  style={{
+    display:'flex',
+    alignItems:'center',
+    gap:'12px'
+  }}
+>
+
+  <div className="userInfo">
+    Administrador <span className="admin">(Admin)</span>
+  </div>
+
+  <button className="logoutBtn">
+    Sair
+  </button>
+
+</div>
 
       </div>
 
