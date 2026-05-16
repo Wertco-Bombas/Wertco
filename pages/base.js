@@ -13,6 +13,10 @@ export default function Base() {
         </nav>
       </header>
 
+      <div className="search-bar">
+        <input type="text" placeholder="Pesquisar títulos, descrições, categorias, comentários e nomes..." />
+      </div>
+
       <main className="content">
         <div className="actions">
           <button>Todas as categorias</button>
