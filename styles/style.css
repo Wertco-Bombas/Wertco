@@ -1,41 +1,39 @@
+/* Fundo escuro e centralização */
 body {
   margin: 0;
   font-family: Arial, sans-serif;
   background-color: #111;
-  color: #f1c40f;
   height: 100vh;
   display: flex;
   justify-content: center;   /* centraliza horizontal */
   align-items: center;       /* centraliza vertical */
 }
 
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-}
-
+/* Caixa de login */
 .login-box {
   background-color: #000;
   padding: 30px;
   border-radius: 8px;
-  box-shadow: 0 0 10px rgba(241, 196, 15, 0.7);
+  box-shadow: 0 0 15px rgba(241, 196, 15, 0.7);
   width: 320px;
 }
 
+/* Título */
 .login-title {
   text-align: center;
   margin-bottom: 20px;
   color: #f1c40f;
+  font-size: 24px;
 }
 
+/* Labels */
 label {
   display: block;
   margin-bottom: 5px;
   color: #f1c40f;
 }
 
+/* Inputs brancos */
 input {
   width: 100%;
   padding: 10px;
@@ -46,15 +44,10 @@ input {
   color: #000;
 }
 
-.button-group {
-  display: flex;
-  justify-content: space-between;
-}
-
+/* Botão amarelo */
 .login-button {
-  flex: 1;
-  margin-right: 5px;
-  padding: 10px;
+  width: 100%;
+  padding: 12px;
   background-color: #f1c40f;
   color: #000;
   font-weight: bold;
@@ -67,28 +60,14 @@ input {
   background-color: #d4ac0d;
 }
 
-.register-button {
-  flex: 1;
-  margin-left: 5px;
-  padding: 10px;
-  background-color: #444;
-  color: #f1c40f;
-  font-weight: bold;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.register-button:hover {
-  background-color: #666;
-}
-
+/* Mensagem */
 .login-message {
   margin-top: 15px;
   text-align: center;
   color: #f1c40f;
 }
 
+/* Dashboard */
 .dashboard-container {
   padding: 40px;
   text-align: center;
