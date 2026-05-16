@@ -10,7 +10,7 @@ export default function Base() {
     { id: 3, category: "Instalação", title: "P8", description: "Erro de instalação." }
   ]);
 
-  const [modal, setModal] = useState(null); // controla qual modal está aberto
+  const [modal, setModal] = useState(null);
   const [newTopic, setNewTopic] = useState({ title: "", description: "", category: "HTML" });
   const [newCategory, setNewCategory] = useState("");
   const [deleteCat, setDeleteCat] = useState("HTML");
@@ -30,6 +30,7 @@ export default function Base() {
         setCategories([...categories, newTopic.category]);
       }
       setModal(null);
+      setNewTopic({ title: "", description: "", category: "HTML" });
     }
   }
 
@@ -37,6 +38,7 @@ export default function Base() {
     if (newCategory && !categories.includes(newCategory)) {
       setCategories([...categories, newCategory]);
       setModal(null);
+      setNewCategory("");
     }
   }
 
@@ -44,6 +46,7 @@ export default function Base() {
     setCategories(categories.filter(c => c !== deleteCat));
     setTopics(topics.filter(t => t.category !== deleteCat));
     setModal(null);
+    setDeleteCat("HTML");
   }
 
   return (
@@ -96,69 +99,69 @@ export default function Base() {
       </main>
 
       {/* Modais */}
-      {modal === "topic" && (
+      {modal && (
         <div className="modal">
           <div className="modal-content">
-            <h2>Novo Tópico</h2>
-            <input
-              type="text"
-              placeholder="Título"
-              value={newTopic.title}
-              onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })}
-            />
-            <input
-              type="text"
-              placeholder="Descrição"
-              value={newTopic.description}
-              onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })}
-            />
-            <select
-              value={newTopic.category}
-              onChange={(e) => setNewTopic({ ...newTopic, category: e.target.value })}
-            >
-              {categories.map((c, i) => (
-                <option key={i} value={c}>{c}</option>
-              ))}
-            </select>
-            <div className="modal-buttons">
-              <button onClick={saveTopic}>Salvar</button>
-              <button onClick={() => setModal(null)}>Voltar</button>
-            </div>
-          </div>
-        </div>
-      )}
+            {modal === "topic" && (
+              <>
+                <h2>Novo Tópico</h2>
+                <input
+                  type="text"
+                  placeholder="Título"
+                  value={newTopic.title}
+                  onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="Descrição"
+                  value={newTopic.description}
+                  onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })}
+                />
+                <select
+                  value={newTopic.category}
+                  onChange={(e) => setNewTopic({ ...newTopic, category: e.target.value })}
+                >
+                  {categories.map((c, i) => (
+                    <option key={i} value={c}>{c}</option>
+                  ))}
+                </select>
+                <div className="modal-buttons">
+                  <button onClick={saveTopic}>Salvar</button>
+                  <button onClick={() => setModal(null)}>Voltar</button>
+                </div>
+              </>
+            )}
 
-      {modal === "category" && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>Nova Categoria</h2>
-            <input
-              type="text"
-              placeholder="Nome da categoria"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-            />
-            <div className="modal-buttons">
-              <button onClick={saveCategory}>Salvar</button>
-              <button onClick={() => setModal(null)}>Voltar</button>
-            </div>
-          </div>
-        </div>
-      )}
+            {modal === "category" && (
+              <>
+                <h2>Nova Categoria</h2>
+                <input
+                  type="text"
+                  placeholder="Nome da categoria"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                />
+                <div className="modal-buttons">
+                  <button onClick={saveCategory}>Salvar</button>
+                  <button onClick={() => setModal(null)}>Voltar</button>
+                </div>
+              </>
+            )}
 
-      {modal === "delete" && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>Excluir Categoria</h2>
-            <select value={deleteCat} onChange={(e) => setDeleteCat(e.target.value)}>
-              {categories.map((c, i) => (
-                <option key={i} value={c}>{c}</option>
-              ))}
-            </select>
-            <div className="modal-buttons">
-              <button onClick={removeCategory}>Excluir</button>
-              <button onClick={() => setModal(null)}>Voltar</button>
-            </div>
+            {modal === "delete" && (
+              <>
+                <h2>Excluir Categoria</h2>
+                <select value={deleteCat} onChange={(e) => setDeleteCat(e.target.value)}>
+                  {categories.map((c, i) => (
+                    <option key={i} value={c}>{c}</option>
+                  ))}
+                </select>
+                <div className="modal-buttons">
+                  <button onClick={removeCategory}>Excluir</button>
+                  <button onClick={() => setModal(null)}>Voltar</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
