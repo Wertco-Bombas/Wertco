@@ -1,133 +1,44 @@
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #1c1c1c; /* cinza escuro */
-  color: #f7d774; /* amarelo suave */
-  text-align: center;
-}
-
-/* Navbar */
-.navbar {
-  background-color: #222;
-  padding: 20px;
-  border-bottom: 2px solid #f7d774;
-}
-
-.nav-links {
-  list-style: none;
-  display: inline-flex;
-  gap: 40px;
-  margin: 0;
-  padding: 0;
-  font-weight: bold;
+/* Login */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* centraliza vertical */
+  align-items: center;     /* centraliza horizontal */
+  height: 100vh;           /* ocupa tela inteira */
+  background-color: #1c1c1c;
   color: #f7d774;
 }
 
-.nav-links li:hover {
-  color: #ffe58a;
-}
-
-/* Usuário */
-.usuario-container {
-  text-align: center;
-  padding: 30px;
-}
-
-.usuario-container h1 {
+.login-container h1 {
   margin-bottom: 20px;
 }
 
-.usuario-container button {
-  background: #f7d774;
-  color: #222;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-
-.usuario-container button:hover {
-  background: #ffe58a;
-}
-
-.usuario-container ul {
-  list-style: none;
-  padding: 0;
-  margin-top: 20px;
-}
-
-.usuario-container li {
-  background: #2a2a2a;
-  margin: 10px auto;
-  padding: 12px;
-  border-radius: 8px;
-  width: 50%;
-  text-align: left;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-
-/* Modal */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(28, 28, 28, 0.9);
+.login-form {
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column; /* coloca os inputs em coluna */
+  gap: 15px;              /* espaço entre os campos */
+  width: 300px;
 }
 
-.modal-content {
-  background: #2a2a2a;
-  padding: 30px;
-  border-radius: 10px;
-  border: 2px solid #f7d774;
-  width: 400px;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-}
-
-.modal-content input,
-.modal-content select {
-  width: 90%;
-  padding: 10px;
-  margin: 10px 0;
+.login-form input {
+  padding: 12px;
   border-radius: 6px;
   border: 1px solid #f7d774;
-  background: #1c1c1c;
+  background: #2a2a2a;
   color: #f7d774;
 }
 
-.modal-buttons {
-  margin-top: 20px;
-}
-
-.modal-buttons button {
-  margin: 0 10px;
-  padding: 10px 14px;
+.login-form button {
+  padding: 12px;
   border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.modal-buttons button:first-child {
+  border: none;
   background: #f7d774;
   color: #222;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
 }
 
-.modal-buttons button:first-child:hover {
+.login-form button:hover {
   background: #ffe58a;
-}
-
-.modal-buttons button:last-child {
-  background: #444;
-  color: #f7d774;
-}
-
-.modal-buttons button:last-child:hover {
-  background: #666;
 }
