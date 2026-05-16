@@ -1,42 +1,31 @@
-import { useState } from "react";
-
-export default function LoginPage() {
-  const [user, setUser] = useState("");
-  const [password, setPassword] = useState("");
-
-  async function handleLogin(e) {
-    e.preventDefault();
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user, password }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      window.location.href = "/dashboard"; // vai para o menu inicial
-    } else {
-      alert("Usuário ou senha inválidos");
-    }
-  }
-
+export default function Login() {
   return (
-    <div className="login-container">
-      <h1>Login</h1>
-      <form className="login-form" onSubmit={handleLogin}>
-        <input
-          type="text"
-          placeholder="Usuário"
-          value={user}
-          onChange={(e) => setUser(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button type="submit">Entrar</button>
-      </form>
+    <div className="loginPage">
+      <div className="loginBox">
+
+        <h1 className="loginTitle">Entrar</h1>
+
+        <div className="loginField">
+          <label>Usuário</label>
+          <input className="loginInput" type="text" />
+        </div>
+
+        <div className="loginField">
+          <label>Senha</label>
+          <input className="loginInput" type="password" />
+        </div>
+
+        <div className="loginActions">
+          <button className="btn btnYellow">
+            Entrar
+          </button>
+
+          <button className="btn demoBtn">
+            Entrar como demo
+          </button>
+        </div>
+
+      </div>
     </div>
-  );
+  )
 }
