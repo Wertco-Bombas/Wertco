@@ -1,4 +1,8 @@
 export default function Dashboard() {
+  function handleLogout() {
+    window.location.href = "/login"; // volta para login
+  }
+
   return (
     <div className="dashboard-container">
       <h1>Bem-vindo!</h1>
@@ -19,6 +23,7 @@ export default function Dashboard() {
         <button onClick={() => (window.location.href = "/atendimento")}>
           Atendimento
         </button>
+        <button onClick={handleLogout}>Sair</button>
       </div>
     </div>
   );
