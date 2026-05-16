@@ -1,6 +1,7 @@
 export default function Base() {
   return (
     <div className="base-container">
+      {/* Navbar */}
       <header className="navbar">
         <div className="logo">Don</div>
         <nav>
@@ -13,10 +14,15 @@ export default function Base() {
         </nav>
       </header>
 
+      {/* Barra de pesquisa */}
       <div className="search-bar">
-        <input type="text" placeholder="Pesquisar títulos, descrições, categorias, comentários e nomes..." />
+        <input
+          type="text"
+          placeholder="Pesquisar títulos, descrições, categorias, comentários e nomes..."
+        />
       </div>
 
+      {/* Conteúdo principal */}
       <main className="content">
         <div className="actions">
           <button>Todas as categorias</button>
@@ -25,11 +31,14 @@ export default function Base() {
           <button>Excluir Categoria</button>
         </div>
 
+        {/* Categoria HTML Básico */}
         <section className="category">
           <h2>HTML Básico</h2>
           <p>Estrutura de páginas web.</p>
           <div className="comments">
-            <p><strong>Usuário Comum</strong> (04/05/2026, 17:54:51) — Pendente</p>
+            <p>
+              <strong>Usuário Comum</strong> (04/05/2026, 17:54:51) — Pendente
+            </p>
             <button>Aprovar</button>
             <button>Rejeitar</button>
             <input type="text" placeholder="Adicionar comentário" />
@@ -37,6 +46,7 @@ export default function Base() {
           </div>
         </section>
 
+        {/* Categoria CSS Avançado */}
         <section className="category">
           <h2>CSS Avançado</h2>
           <p>Estilização e responsividade.</p>
@@ -47,6 +57,7 @@ export default function Base() {
           </div>
         </section>
 
+        {/* Categoria P8 */}
         <section className="category">
           <h2>P8</h2>
           <p>Erro de instalação.</p>
@@ -58,6 +69,7 @@ export default function Base() {
         </section>
       </main>
 
+      {/* Sidebar */}
       <aside className="sidebar">
         <h3>Comentários pendentes</h3>
         <p>HTML Básico — Comentário id_5egfoik por user</p>
