@@ -24,9 +24,12 @@ export default function Dashboard(){
     Administrador <span className="admin">(Admin)</span>
   </div>
 
-  <button className="logoutBtn">
-    Sair
-  </button>
+  <button
+  className="logoutBtn"
+  onClick={() => window.location.href = '/login'}
+>
+  Sair
+</button>
 
 </div>
 
