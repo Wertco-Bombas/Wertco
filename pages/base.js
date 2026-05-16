@@ -20,7 +20,9 @@ export default function Base() {
   const [newCategory, setNewCategory] = useState("");
   const [deleteCat, setDeleteCat] = useState("HTML");
 
+  // ---------------------------
   // 🔐 AUTH + PROFILE
+  // ---------------------------
   useEffect(() => {
     async function loadUser() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -44,45 +46,49 @@ export default function Base() {
     loadUser();
   }, []);
 
-  // 📊 LOAD TOPICS (APROVADOS)
-  useEffect(() => {
-    async function loadTopics() {
-      const { data } = await supabase
-        .from("topics")
-        .select("*")
-        .eq("status", "approved")
-        .order("id", { ascending: false });
+  // ---------------------------
+  // 📊 LOAD TOPICS
+  // ---------------------------
+  async function loadTopics() {
+    const { data } = await supabase
+      .from("topics")
+      .select("*")
+      .eq("status", "approved")
+      .order("id", { ascending: false });
 
-      setTopics(data || []);
-    }
+    setTopics(data || []);
+  }
 
-    loadTopics();
-  }, []);
-
+  // ---------------------------
   // 📊 LOAD CATEGORIES
+  // ---------------------------
+  async function loadCategories() {
+    const { data } = await supabase.from("categories").select("*");
+
+    setCategories(data?.map(c => c.name) || []);
+  }
+
   useEffect(() => {
-    async function loadCategories() {
-      const { data } = await supabase
-        .from("categories")
-        .select("*");
-
-      setCategories(data?.map(c => c.name) || []);
-    }
-
+    loadTopics();
     loadCategories();
   }, []);
 
+  // ---------------------------
+  // FILTER
+  // ---------------------------
   const filteredTopics = topics.filter(t => {
     const matchesSearch =
-      t.title.toLowerCase().includes(search.toLowerCase()) ||
-      t.description.toLowerCase().includes(search.toLowerCase());
+      t.title?.toLowerCase().includes(search.toLowerCase()) ||
+      t.description?.toLowerCase().includes(search.toLowerCase());
 
     const matchesFilter = filter === "Todas" || t.category === filter;
 
     return matchesSearch && matchesFilter;
   });
 
-  // 🟡 CRIAR TOPIC (PENDING)
+  // ---------------------------
+  // 🟡 CREATE TOPIC
+  // ---------------------------
   async function saveTopic() {
     if (!newTopic.title || !newTopic.description) return;
 
@@ -103,9 +109,13 @@ export default function Base() {
 
     setModal(null);
     setNewTopic({ title: "", description: "", category: "HTML" });
+
+    await loadTopics(); // 🔥 ESSENCIAL
   }
 
-  // 🟡 CRIAR CATEGORIA
+  // ---------------------------
+  // 🟡 CREATE CATEGORY
+  // ---------------------------
   async function saveCategory() {
     if (!newCategory) return;
 
@@ -122,9 +132,13 @@ export default function Base() {
 
     setModal(null);
     setNewCategory("");
+
+    await loadCategories(); // 🔥 ESSENCIAL
   }
 
-  // 🟡 REMOVER CATEGORIA
+  // ---------------------------
+  // 🟡 DELETE CATEGORY
+  // ---------------------------
   async function removeCategory() {
     await supabase.from("categories").delete().eq("name", deleteCat);
 
@@ -137,21 +151,27 @@ export default function Base() {
 
     setModal(null);
     setDeleteCat("HTML");
+
+    await loadCategories();
+    await loadTopics(); // 🔥 remove tópicos órfãos atualiza tela
   }
 
+  // ---------------------------
+  // LOADING STATE
+  // ---------------------------
   if (!user) return <p>Carregando...</p>;
 
   return (
     <Layout>
       <div className="base-container">
 
-        {/* 👤 USER INFO */}
+        {/* USER INFO */}
         <div style={{ marginBottom: 10 }}>
           <p><strong>Usuário:</strong> {user.email}</p>
           <p><strong>Nível:</strong> {profile?.role || "user"}</p>
         </div>
 
-        {/* 🔐 ADMIN AREA */}
+        {/* ADMIN AREA */}
         {profile?.role === "admin" && (
           <div style={{ background: "#222", color: "#fff", padding: 10, marginBottom: 10 }}>
             Área Administrador
