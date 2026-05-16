@@ -1,35 +1,26 @@
-import { createClient } from '@supabase/supabase-js';
+// pages/api/login.js
+export default function handler(req, res) {
+  if (req.method === "POST") {
+    const { user, password } = req.body;
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+    // Simulação de usuários com níveis de acesso
+    const users = [
+      { user: "admin", password: "123", role: "Admin" },
+      { user: "supervisor", password: "123", role: "Supervisor" },
+      { user: "usuario", password: "123", role: "Usuário" },
+    ];
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método não permitido' });
-  }
+    // Verifica se existe usuário com credenciais válidas
+    const found = users.find(
+      (u) => u.user === user && u.password === password
+    );
 
-  const { username, password } = req.body;
-
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('username', username)
-      .eq('password_hash', password)
-      .single();
-
-    if (error) {
-      return res.status(400).json({ error: error.message });
+    if (found) {
+      res.status(200).json({ success: true, role: found.role });
+    } else {
+      res.status(401).json({ success: false });
     }
-
-    if (!data) {
-      return res.status(401).json({ error: 'Usuário ou senha inválidos' });
-    }
-
-    return res.status(200).json({ ok: true, user: data });
-  } catch (err) {
-    return res.status(500).json({ error: 'Erro interno no servidor' });
+  } else {
+    res.status(405).json({ message: "Método não permitido" });
   }
 }
