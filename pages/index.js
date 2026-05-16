@@ -16,7 +16,7 @@ export default function Home() {
     });
     const data = await res.json();
     if (res.ok) {
-      router.push("/dashboard"); // redireciona para dashboard
+      router.push("/base"); // redireciona para a página principal
     } else {
       setMessage(data.error || "Usuário ou senha inválidos");
     }
