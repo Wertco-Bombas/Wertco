@@ -3,20 +3,17 @@ export default function Layout({ children }) {
     window.location.href = "/login";
   }
 
-  function goDashboard() {
+  function goMenu() {
     window.location.href = "/dashboard";
   }
 
   return (
     <div className="layout-container">
       <nav className="menu">
-        <button onClick={goDashboard}>Dashboard</button>
-        <button onClick={() => (window.location.href = "/base")}>Base</button>
-        <button onClick={() => (window.location.href = "/usuario")}>Usuário</button>
-        <button onClick={() => (window.location.href = "/treinamento")}>Treinamento</button>
-        <button onClick={() => (window.location.href = "/auditoria")}>Auditoria</button>
-        <button onClick={() => (window.location.href = "/atendimento")}>Atendimento</button>
-        <button onClick={handleLogout}>Sair</button>
+        <div className="menu-right">
+          <button onClick={goMenu}>Menu</button>
+          <button onClick={handleLogout}>Sair</button>
+        </div>
       </nav>
       <main>{children}</main>
     </div>
