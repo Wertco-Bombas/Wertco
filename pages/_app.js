@@ -1,6 +1,6 @@
 import '../styles/globals.css'
 import '../styles/style.css'
 
-export default function MyApp({ Component, pageProps }) {
+export default function App({ Component, pageProps }) {
   return <Component {...pageProps} />
 }
