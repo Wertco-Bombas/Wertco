@@ -1,12 +1,22 @@
+/* Reset para remover bordas brancas */
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #000; /* fundo preto uniforme */
+  color: #f1c40f;         /* amarelo vibrante */
+}
+
 /* Login */
 .login-container {
+  min-height: 100vh;  /* ocupa toda a tela */
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center; /* centraliza vertical */
   align-items: center;     /* centraliza horizontal */
-  height: 100vh;           /* ocupa tela inteira */
-  background-color: #1c1c1c;
-  color: #f7d774;
+  background-color: #000;  /* fundo preto */
 }
 
 .login-container h1 {
@@ -15,30 +25,30 @@
 
 .login-form {
   display: flex;
-  flex-direction: column; /* coloca os inputs em coluna */
-  gap: 15px;              /* espaço entre os campos */
+  flex-direction: column; /* inputs em coluna */
+  gap: 15px;              /* espaço entre campos */
   width: 300px;
 }
 
 .login-form input {
   padding: 12px;
   border-radius: 6px;
-  border: 1px solid #f7d774;
-  background: #2a2a2a;
-  color: #f7d774;
+  border: 1px solid #f1c40f;
+  background: #111;
+  color: #f1c40f;
 }
 
 .login-form button {
   padding: 12px;
   border-radius: 6px;
   border: none;
-  background: #f7d774;
-  color: #222;
+  background: #f1c40f;
+  color: #000;
   font-weight: bold;
   cursor: pointer;
   transition: background 0.3s;
 }
 
 .login-form button:hover {
-  background: #ffe58a;
+  background: #d4ac0d;
 }
