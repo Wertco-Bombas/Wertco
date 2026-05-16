@@ -4,14 +4,12 @@ export default function Base() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("Todas");
 
-  // tópicos simulados
   const topics = [
     { id: 1, category: "HTML", title: "HTML Básico", description: "Estrutura de páginas web." },
     { id: 2, category: "CSS", title: "CSS Avançado", description: "Estilização e responsividade." },
     { id: 3, category: "Instalação", title: "P8", description: "Erro de instalação." }
   ];
 
-  // lógica de pesquisa e filtro
   const filteredTopics = topics.filter(t => {
     const matchesSearch =
       t.title.toLowerCase().includes(search.toLowerCase()) ||
