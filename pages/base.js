@@ -7,14 +7,12 @@ export default function Base() {
     <div className="base-container">
       {/* Topo com navegação */}
       <header className="navbar">
-        <nav>
-          <ul>
-            <li>Base de conhecimento</li>
-            <li>Usuário</li>
-            <li>Treinamento</li>
-            <li>Auditoria</li>
-          </ul>
-        </nav>
+        <ul className="nav-links">
+          <li>Base de conhecimento</li>
+          <li>Usuário</li>
+          <li>Treinamento</li>
+          <li>Auditoria</li>
+        </ul>
       </header>
 
       {/* Barra de pesquisa logo abaixo */}
