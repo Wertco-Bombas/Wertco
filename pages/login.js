@@ -13,7 +13,6 @@ export default function LoginPage() {
     });
     const data = await res.json();
     if (data.success) {
-      // redireciona conforme nível de acesso
       if (data.role === "Admin") {
         window.location.href = "/base";
       } else if (data.role === "Supervisor") {
