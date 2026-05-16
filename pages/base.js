@@ -40,9 +40,14 @@ export default function Base() {
         />
       </div>
 
-      {/* Filtro e botões de ação */}
+      {/* Filtro de categorias */}
       <div className="actions">
-        <button onClick={() => setFilter("Todas")}>Todas as categorias</button>
+        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+          <option value="Todas">Todas as categorias</option>
+          <option value="HTML">HTML</option>
+          <option value="CSS">CSS</option>
+          <option value="Instalação">Instalação</option>
+        </select>
         <button>+ Novo Tópico</button>
         <button>+ Nova Categoria</button>
         <button>Excluir Categoria</button>
