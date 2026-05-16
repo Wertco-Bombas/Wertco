@@ -11,19 +11,16 @@ export default function Base() {
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("Todas");
-  const [categories, setCategories] = useState(["HTML", "CSS", "Instalação"]);
-  const [topics, setTopics] = useState([
-    { id: 1, category: "HTML", title: "HTML Básico", description: "Estrutura de páginas web." },
-    { id: 2, category: "CSS", title: "CSS Avançado", description: "Estilização e responsividade." },
-    { id: 3, category: "Instalação", title: "P8", description: "Erro de instalação." }
-  ]);
+
+  const [categories, setCategories] = useState([]);
+  const [topics, setTopics] = useState([]);
 
   const [modal, setModal] = useState(null);
   const [newTopic, setNewTopic] = useState({ title: "", description: "", category: "HTML" });
   const [newCategory, setNewCategory] = useState("");
   const [deleteCat, setDeleteCat] = useState("HTML");
 
-  // 🔐 AUTENTICAÇÃO + PROFILE
+  // 🔐 AUTH + PROFILE
   useEffect(() => {
     async function loadUser() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -35,7 +32,6 @@ export default function Base() {
 
       setUser(user);
 
-      // buscar profile (role)
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -48,73 +44,131 @@ export default function Base() {
     loadUser();
   }, []);
 
+  // 📊 LOAD TOPICS (APROVADOS)
+  useEffect(() => {
+    async function loadTopics() {
+      const { data } = await supabase
+        .from("topics")
+        .select("*")
+        .eq("status", "approved")
+        .order("id", { ascending: false });
+
+      setTopics(data || []);
+    }
+
+    loadTopics();
+  }, []);
+
+  // 📊 LOAD CATEGORIES
+  useEffect(() => {
+    async function loadCategories() {
+      const { data } = await supabase
+        .from("categories")
+        .select("*");
+
+      setCategories(data?.map(c => c.name) || []);
+    }
+
+    loadCategories();
+  }, []);
+
   const filteredTopics = topics.filter(t => {
     const matchesSearch =
       t.title.toLowerCase().includes(search.toLowerCase()) ||
       t.description.toLowerCase().includes(search.toLowerCase());
+
     const matchesFilter = filter === "Todas" || t.category === filter;
+
     return matchesSearch && matchesFilter;
   });
 
-  function saveTopic() {
-    if (newTopic.title && newTopic.description) {
-      setTopics([...topics, { id: topics.length + 1, ...newTopic }]);
+  // 🟡 CRIAR TOPIC (PENDING)
+  async function saveTopic() {
+    if (!newTopic.title || !newTopic.description) return;
 
-      if (!categories.includes(newTopic.category)) {
-        setCategories([...categories, newTopic.category]);
-      }
+    await supabase.from("topics").insert({
+      title: newTopic.title,
+      description: newTopic.description,
+      category: newTopic.category,
+      status: "pending",
+      created_by: user.id
+    });
 
-      setModal(null);
-      setNewTopic({ title: "", description: "", category: "HTML" });
-    }
+    await supabase.from("audit_log").insert({
+      action: "CREATE_TOPIC",
+      table_name: "topics",
+      record_id: newTopic.title,
+      user_id: user.id
+    });
+
+    setModal(null);
+    setNewTopic({ title: "", description: "", category: "HTML" });
   }
 
-  function saveCategory() {
-    if (newCategory && !categories.includes(newCategory)) {
-      setCategories([...categories, newCategory]);
-      setModal(null);
-      setNewCategory("");
-    }
+  // 🟡 CRIAR CATEGORIA
+  async function saveCategory() {
+    if (!newCategory) return;
+
+    await supabase.from("categories").insert({
+      name: newCategory
+    });
+
+    await supabase.from("audit_log").insert({
+      action: "CREATE_CATEGORY",
+      table_name: "categories",
+      record_id: newCategory,
+      user_id: user.id
+    });
+
+    setModal(null);
+    setNewCategory("");
   }
 
-  function removeCategory() {
-    setCategories(categories.filter(c => c !== deleteCat));
-    setTopics(topics.filter(t => t.category !== deleteCat));
+  // 🟡 REMOVER CATEGORIA
+  async function removeCategory() {
+    await supabase.from("categories").delete().eq("name", deleteCat);
+
+    await supabase.from("audit_log").insert({
+      action: "DELETE_CATEGORY",
+      table_name: "categories",
+      record_id: deleteCat,
+      user_id: user.id
+    });
+
     setModal(null);
     setDeleteCat("HTML");
   }
 
-  // 🔐 enquanto carrega login
   if (!user) return <p>Carregando...</p>;
 
   return (
     <Layout>
       <div className="base-container">
 
-        {/* 👤 INFO DO USUÁRIO */}
+        {/* 👤 USER INFO */}
         <div style={{ marginBottom: 10 }}>
           <p><strong>Usuário:</strong> {user.email}</p>
           <p><strong>Nível:</strong> {profile?.role || "user"}</p>
         </div>
 
-        {/* 🔐 EXEMPLO DE CONTROLE DE ACESSO */}
+        {/* 🔐 ADMIN AREA */}
         {profile?.role === "admin" && (
           <div style={{ background: "#222", color: "#fff", padding: 10, marginBottom: 10 }}>
             Área Administrador
           </div>
         )}
 
-        {/* Pesquisa */}
+        {/* SEARCH */}
         <div className="search-bar">
           <input
             type="text"
-            placeholder="Pesquisar títulos, descrições, categorias, comentários..."
+            placeholder="Pesquisar..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
-        {/* Filtro e ações */}
+        {/* ACTIONS */}
         <div className="actions">
           <select value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option value="Todas">Todas as categorias</option>
@@ -123,7 +177,6 @@ export default function Base() {
             ))}
           </select>
 
-          {/* 🔐 só admin/supervisor podem gerenciar */}
           {(profile?.role === "admin" || profile?.role === "supervisor") && (
             <>
               <button onClick={() => setModal("topic")}>+ Novo Tópico</button>
@@ -133,14 +186,13 @@ export default function Base() {
           )}
         </div>
 
-        {/* Lista de tópicos */}
+        {/* TOPICS */}
         <main className="content">
           {filteredTopics.map(topic => (
             <section key={topic.id} className="topic">
               <h2>{topic.title}</h2>
               <p>{topic.description}</p>
 
-              {/* 🔐 comentário liberado só logado */}
               <div className="comments">
                 <input type="text" placeholder="Adicionar comentário" />
                 <button>Enviar</button>
@@ -149,14 +201,14 @@ export default function Base() {
           ))}
         </main>
 
-        {/* Modais */}
+        {/* MODALS */}
         {modal && (
           <div className="modal">
             <div className="modal-content">
 
               {modal === "topic" && (
                 <>
-                  <h2>Novo Tópico</h2>
+                  <h2>Novo Tópico (pendente aprovação)</h2>
                   <input
                     type="text"
                     placeholder="Título"
@@ -190,7 +242,6 @@ export default function Base() {
                   <h2>Nova Categoria</h2>
                   <input
                     type="text"
-                    placeholder="Nome da categoria"
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                   />
