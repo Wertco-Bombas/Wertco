@@ -13,13 +13,8 @@ export default function LoginPage() {
     });
     const data = await res.json();
     if (data.success) {
-      if (data.role === "Admin") {
-        window.location.href = "/base";
-      } else if (data.role === "Supervisor") {
-        window.location.href = "/treinamento";
-      } else {
-        window.location.href = "/base";
-      }
+      // Após login, vai para o dashboard
+      window.location.href = "/dashboard";
     } else {
       alert("Usuário ou senha inválidos");
     }
