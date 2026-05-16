@@ -109,4 +109,8 @@ body {
   background: #f1c40f;
   color: #000;
   border: none;
-  border-radius:
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.comments
