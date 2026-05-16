@@ -48,8 +48,6 @@ export default function Usuario() {
               value={newUser.senha}
               onChange={(e) => setNewUser({ ...newUser, senha: e.target.value })}
             />
-
-            {/* Seleção de nível */}
             <select
               value={newUser.nivel}
               onChange={(e) => setNewUser({ ...newUser, nivel: e.target.value })}
@@ -58,7 +56,6 @@ export default function Usuario() {
               <option value="Supervisor">Supervisor</option>
               <option value="Usuário">Usuário</option>
             </select>
-
             <div className="modal-buttons">
               <button onClick={saveUser}>Salvar</button>
               <button onClick={() => setModal(false)}>Voltar</button>
