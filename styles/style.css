@@ -113,4 +113,9 @@ body {
   cursor: pointer;
 }
 
-.comments
+.comments button:hover {
+  background: #d4ac0d;
+}
+
+/* Modal */
+.modal
