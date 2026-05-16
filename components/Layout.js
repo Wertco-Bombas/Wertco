@@ -7,11 +7,14 @@ export default function Layout({ children }) {
     window.location.href = "/dashboard";
   }
 
+  // Detecta se está na tela de Menu (dashboard)
+  const isMenuPage = window.location.pathname === "/dashboard";
+
   return (
     <div className="layout-container">
       <nav className="menu">
         <div className="menu-right">
-          <button onClick={goMenu}>Menu</button>
+          {!isMenuPage && <button onClick={goMenu}>Menu</button>}
           <button onClick={handleLogout}>Sair</button>
         </div>
       </nav>
