@@ -1,18 +1,18 @@
 export default function Home() {
   return (
-    <div className="container">
-      <h1>Login</h1>
-      <form method="POST" action="/api/login">
-        <input type="text" name="username" placeholder="Usuário" />
-        <input type="password" name="password" placeholder="Senha" />
-        <button type="submit">Entrar</button>
-      </form>
+    <div className="login-container">
+      <div className="login-box">
+        <h1 className="login-title">Entrar</h1>
+        <form method="POST" action="/api/login">
+          <label htmlFor="username">Usuário</label>
+          <input type="text" id="username" name="username" required />
 
-      <form method="POST" action="/api/register" style={{ marginTop: "20px" }}>
-        <input type="text" name="username" placeholder="Novo usuário" />
-        <input type="password" name="password" placeholder="Senha" />
-        <button type="submit">Cadastrar</button>
-      </form>
+          <label htmlFor="password">Senha</label>
+          <input type="password" id="password" name="password" required />
+
+          <button type="submit" className="login-button">Entrar</button>
+        </form>
+      </div>
     </div>
   );
 }
