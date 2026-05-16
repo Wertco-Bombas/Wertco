@@ -21,6 +21,7 @@ export default function Admin() {
         return;
       }
 
+      
       setUser(user);
 
       const { data: profileData } = await supabase
