@@ -1,7 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import Layout from "../components/Layout";
+import { supabase } from "../lib/supabase";
 
 export default function Base() {
+  const router = useRouter();
+
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("Todas");
   const [categories, setCategories] = useState(["HTML", "CSS", "Instalação"]);
@@ -16,6 +23,31 @@ export default function Base() {
   const [newCategory, setNewCategory] = useState("");
   const [deleteCat, setDeleteCat] = useState("HTML");
 
+  // 🔐 AUTENTICAÇÃO + PROFILE
+  useEffect(() => {
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/");
+        return;
+      }
+
+      setUser(user);
+
+      // buscar profile (role)
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      setProfile(profileData);
+    }
+
+    loadUser();
+  }, []);
+
   const filteredTopics = topics.filter(t => {
     const matchesSearch =
       t.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -27,9 +59,11 @@ export default function Base() {
   function saveTopic() {
     if (newTopic.title && newTopic.description) {
       setTopics([...topics, { id: topics.length + 1, ...newTopic }]);
+
       if (!categories.includes(newTopic.category)) {
         setCategories([...categories, newTopic.category]);
       }
+
       setModal(null);
       setNewTopic({ title: "", description: "", category: "HTML" });
     }
@@ -50,9 +84,26 @@ export default function Base() {
     setDeleteCat("HTML");
   }
 
+  // 🔐 enquanto carrega login
+  if (!user) return <p>Carregando...</p>;
+
   return (
     <Layout>
       <div className="base-container">
+
+        {/* 👤 INFO DO USUÁRIO */}
+        <div style={{ marginBottom: 10 }}>
+          <p><strong>Usuário:</strong> {user.email}</p>
+          <p><strong>Nível:</strong> {profile?.role || "user"}</p>
+        </div>
+
+        {/* 🔐 EXEMPLO DE CONTROLE DE ACESSO */}
+        {profile?.role === "admin" && (
+          <div style={{ background: "#222", color: "#fff", padding: 10, marginBottom: 10 }}>
+            Área Administrador
+          </div>
+        )}
+
         {/* Pesquisa */}
         <div className="search-bar">
           <input
@@ -71,9 +122,15 @@ export default function Base() {
               <option key={i} value={c}>{c}</option>
             ))}
           </select>
-          <button onClick={() => setModal("topic")}>+ Novo Tópico</button>
-          <button onClick={() => setModal("category")}>+ Nova Categoria</button>
-          <button onClick={() => setModal("delete")}>Excluir Categoria</button>
+
+          {/* 🔐 só admin/supervisor podem gerenciar */}
+          {(profile?.role === "admin" || profile?.role === "supervisor") && (
+            <>
+              <button onClick={() => setModal("topic")}>+ Novo Tópico</button>
+              <button onClick={() => setModal("category")}>+ Nova Categoria</button>
+              <button onClick={() => setModal("delete")}>Excluir Categoria</button>
+            </>
+          )}
         </div>
 
         {/* Lista de tópicos */}
@@ -82,6 +139,8 @@ export default function Base() {
             <section key={topic.id} className="topic">
               <h2>{topic.title}</h2>
               <p>{topic.description}</p>
+
+              {/* 🔐 comentário liberado só logado */}
               <div className="comments">
                 <input type="text" placeholder="Adicionar comentário" />
                 <button>Enviar</button>
@@ -94,6 +153,7 @@ export default function Base() {
         {modal && (
           <div className="modal">
             <div className="modal-content">
+
               {modal === "topic" && (
                 <>
                   <h2>Novo Tópico</h2>
@@ -117,6 +177,7 @@ export default function Base() {
                       <option key={i} value={c}>{c}</option>
                     ))}
                   </select>
+
                   <div className="modal-buttons">
                     <button onClick={saveTopic}>Salvar</button>
                     <button onClick={() => setModal(null)}>Voltar</button>
@@ -133,6 +194,7 @@ export default function Base() {
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                   />
+
                   <div className="modal-buttons">
                     <button onClick={saveCategory}>Salvar</button>
                     <button onClick={() => setModal(null)}>Voltar</button>
@@ -148,15 +210,18 @@ export default function Base() {
                       <option key={i} value={c}>{c}</option>
                     ))}
                   </select>
+
                   <div className="modal-buttons">
                     <button onClick={removeCategory}>Excluir</button>
                     <button onClick={() => setModal(null)}>Voltar</button>
                   </div>
                 </>
               )}
+
             </div>
           </div>
         )}
+
       </div>
     </Layout>
   );
