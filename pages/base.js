@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Layout from "../components/Layout";
 
 export default function Base() {
   const [search, setSearch] = useState("");
@@ -50,121 +51,113 @@ export default function Base() {
   }
 
   return (
-    <div className="base-container">
-      {/* Topo */}
-      <header className="navbar">
-        <ul className="nav-links">
-          <li>Base de conhecimento</li>
-          <li>Usuário</li>
-          <li>Treinamento</li>
-          <li>Auditoria</li>
-        </ul>
-      </header>
-
-      {/* Pesquisa */}
-      <div className="search-bar">
-        <input
-          type="text"
-          placeholder="Pesquisar títulos, descrições, categorias, comentários..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      {/* Filtro e ações */}
-      <div className="actions">
-        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="Todas">Todas as categorias</option>
-          {categories.map((c, i) => (
-            <option key={i} value={c}>{c}</option>
-          ))}
-        </select>
-        <button onClick={() => setModal("topic")}>+ Novo Tópico</button>
-        <button onClick={() => setModal("category")}>+ Nova Categoria</button>
-        <button onClick={() => setModal("delete")}>Excluir Categoria</button>
-      </div>
-
-      {/* Lista de tópicos */}
-      <main className="content">
-        {filteredTopics.map(topic => (
-          <section key={topic.id} className="topic">
-            <h2>{topic.title}</h2>
-            <p>{topic.description}</p>
-            <div className="comments">
-              <input type="text" placeholder="Adicionar comentário" />
-              <button>Enviar</button>
-            </div>
-          </section>
-        ))}
-      </main>
-
-      {/* Modais */}
-      {modal && (
-        <div className="modal">
-          <div className="modal-content">
-            {modal === "topic" && (
-              <>
-                <h2>Novo Tópico</h2>
-                <input
-                  type="text"
-                  placeholder="Título"
-                  value={newTopic.title}
-                  onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="Descrição"
-                  value={newTopic.description}
-                  onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })}
-                />
-                <select
-                  value={newTopic.category}
-                  onChange={(e) => setNewTopic({ ...newTopic, category: e.target.value })}
-                >
-                  {categories.map((c, i) => (
-                    <option key={i} value={c}>{c}</option>
-                  ))}
-                </select>
-                <div className="modal-buttons">
-                  <button onClick={saveTopic}>Salvar</button>
-                  <button onClick={() => setModal(null)}>Voltar</button>
-                </div>
-              </>
-            )}
-
-            {modal === "category" && (
-              <>
-                <h2>Nova Categoria</h2>
-                <input
-                  type="text"
-                  placeholder="Nome da categoria"
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                />
-                <div className="modal-buttons">
-                  <button onClick={saveCategory}>Salvar</button>
-                  <button onClick={() => setModal(null)}>Voltar</button>
-                </div>
-              </>
-            )}
-
-            {modal === "delete" && (
-              <>
-                <h2>Excluir Categoria</h2>
-                <select value={deleteCat} onChange={(e) => setDeleteCat(e.target.value)}>
-                  {categories.map((c, i) => (
-                    <option key={i} value={c}>{c}</option>
-                  ))}
-                </select>
-                <div className="modal-buttons">
-                  <button onClick={removeCategory}>Excluir</button>
-                  <button onClick={() => setModal(null)}>Voltar</button>
-                </div>
-              </>
-            )}
-          </div>
+    <Layout>
+      <div className="base-container">
+        {/* Pesquisa */}
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Pesquisar títulos, descrições, categorias, comentários..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-      )}
-    </div>
+
+        {/* Filtro e ações */}
+        <div className="actions">
+          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="Todas">Todas as categorias</option>
+            {categories.map((c, i) => (
+              <option key={i} value={c}>{c}</option>
+            ))}
+          </select>
+          <button onClick={() => setModal("topic")}>+ Novo Tópico</button>
+          <button onClick={() => setModal("category")}>+ Nova Categoria</button>
+          <button onClick={() => setModal("delete")}>Excluir Categoria</button>
+        </div>
+
+        {/* Lista de tópicos */}
+        <main className="content">
+          {filteredTopics.map(topic => (
+            <section key={topic.id} className="topic">
+              <h2>{topic.title}</h2>
+              <p>{topic.description}</p>
+              <div className="comments">
+                <input type="text" placeholder="Adicionar comentário" />
+                <button>Enviar</button>
+              </div>
+            </section>
+          ))}
+        </main>
+
+        {/* Modais */}
+        {modal && (
+          <div className="modal">
+            <div className="modal-content">
+              {modal === "topic" && (
+                <>
+                  <h2>Novo Tópico</h2>
+                  <input
+                    type="text"
+                    placeholder="Título"
+                    value={newTopic.title}
+                    onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Descrição"
+                    value={newTopic.description}
+                    onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })}
+                  />
+                  <select
+                    value={newTopic.category}
+                    onChange={(e) => setNewTopic({ ...newTopic, category: e.target.value })}
+                  >
+                    {categories.map((c, i) => (
+                      <option key={i} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <div className="modal-buttons">
+                    <button onClick={saveTopic}>Salvar</button>
+                    <button onClick={() => setModal(null)}>Voltar</button>
+                  </div>
+                </>
+              )}
+
+              {modal === "category" && (
+                <>
+                  <h2>Nova Categoria</h2>
+                  <input
+                    type="text"
+                    placeholder="Nome da categoria"
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                  />
+                  <div className="modal-buttons">
+                    <button onClick={saveCategory}>Salvar</button>
+                    <button onClick={() => setModal(null)}>Voltar</button>
+                  </div>
+                </>
+              )}
+
+              {modal === "delete" && (
+                <>
+                  <h2>Excluir Categoria</h2>
+                  <select value={deleteCat} onChange={(e) => setDeleteCat(e.target.value)}>
+                    {categories.map((c, i) => (
+                      <option key={i} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <div className="modal-buttons">
+                    <button onClick={removeCategory}>Excluir</button>
+                    <button onClick={() => setModal(null)}>Voltar</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </Layout>
   );
 }
