@@ -1,4 +1,30 @@
+import { useState } from 'react'
+import { useRouter } from 'next/router'
+import { supabase } from '../lib/supabase'
+
 export default function Login(){
+
+  const router = useRouter()
+
+  const [email,setEmail] = useState('')
+  const [password,setPassword] = useState('')
+  const [error,setError] = useState('')
+
+  async function handleLogin(){
+
+    const { error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+
+    if(error){
+      setError(error.message)
+      return
+    }
+
+    router.push('/dashboard')
+  }
 
   return(
     <div className="loginPage">
@@ -10,18 +36,43 @@ export default function Login(){
         </div>
 
         <div className="field">
-          <label>Usuário</label>
 
-          <input type="text" />
+          <label>Email</label>
+
+          <input
+            type="email"
+            value={email}
+            onChange={e=>setEmail(e.target.value)}
+          />
+
         </div>
 
         <div className="field">
+
           <label>Senha</label>
 
-          <input type="password" />
+          <input
+            type="password"
+            value={password}
+            onChange={e=>setPassword(e.target.value)}
+          />
+
         </div>
 
-        <button className="loginBtn">
+        {
+          error &&
+          <div style={{
+            color:'#ff6b47',
+            marginBottom:'12px'
+          }}>
+            {error}
+          </div>
+        }
+
+        <button
+          className="loginBtn"
+          onClick={handleLogin}
+        >
           Entrar
         </button>
 
