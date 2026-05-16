@@ -5,7 +5,7 @@ export default function Base() {
 
   return (
     <div className="base-container">
-      {/* Topo com navegação */}
+      {/* Topo com navegação centralizada */}
       <header className="navbar">
         <ul className="nav-links">
           <li>Base de conhecimento</li>
