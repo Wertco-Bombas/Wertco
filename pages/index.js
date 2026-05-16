@@ -1,38 +1,66 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { supabase } from "../lib/supabase";
 
 export default function Home() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const router = useRouter();
 
   async function handleLogin(e) {
     e.preventDefault();
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+
+    setMessage("Entrando...");
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
-    const data = await res.json();
-    if (res.ok) {
-      router.push("/base"); // vai direto para a página principal
-    } else {
-      setMessage(data.error || "Usuário ou senha inválidos");
+
+    if (error) {
+      setMessage(error.message);
+      return;
     }
+
+    // pega usuário logado
+    const user = data.user;
+
+    if (!user) {
+      setMessage("Erro ao autenticar usuário");
+      return;
+    }
+
+    // busca perfil (role depois vamos usar)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile) {
+      setMessage("Usuário sem perfil");
+      return;
+    }
+
+    // redireciona conforme sistema
+    router.push("/base");
   }
 
   return (
     <div className="login-container">
       <div className="login-box">
+
         <h1 className="login-title">Entrar</h1>
+
         <form onSubmit={handleLogin}>
-          <label htmlFor="username">Usuário</label>
+
+          <label htmlFor="email">Email</label>
           <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
 
@@ -45,9 +73,14 @@ export default function Home() {
             required
           />
 
-          <button type="submit" className="login-button">Entrar</button>
+          <button type="submit" className="login-button">
+            Entrar
+          </button>
+
         </form>
+
         {message && <p className="login-message">{message}</p>}
+
       </div>
     </div>
   );
