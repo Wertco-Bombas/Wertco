@@ -1,11 +1,10 @@
-/* Reset para remover bordas brancas */
 html, body {
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
-  background-color: #000; /* fundo preto uniforme */
-  color: #f1c40f;         /* amarelo vibrante */
+  background-color: #000;
+  color: #f1c40f;
 }
 
 /* Login */
@@ -25,8 +24,8 @@ html, body {
 
 .login-form {
   display: flex;
-  flex-direction: column; 
-  gap: 15px;              
+  flex-direction: column;
+  gap: 15px;
   width: 300px;
 }
 
@@ -65,17 +64,9 @@ html, body {
   text-align: center;
 }
 
-.dashboard-container h1 {
-  margin-bottom: 10px;
-}
-
-.dashboard-container p {
-  margin-bottom: 20px;
-}
-
 .dashboard-buttons {
   display: flex;
-  flex-direction: column; 
+  flex-direction: column;
   gap: 15px;
   width: 250px;
 }
@@ -92,5 +83,33 @@ html, body {
 }
 
 .dashboard-buttons button:hover {
+  background: #d4ac0d;
+}
+
+/* Páginas internas */
+.page-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #000;
+  color: #f1c40f;
+  text-align: center;
+}
+
+.page-container button {
+  margin-top: 20px;
+  padding: 12px;
+  border-radius: 6px;
+  border: none;
+  background: #f1c40f;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.page-container button:hover {
   background: #d4ac0d;
 }
