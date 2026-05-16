@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
 
+
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const router = useRouter();
 
+  
   async function handleLogin(e) {
     e.preventDefault();
 
