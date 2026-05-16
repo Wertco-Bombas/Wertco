@@ -21,7 +21,7 @@ body {
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(241, 196, 15, 0.7);
-  width: 300px;
+  width: 320px;
 }
 
 .login-title {
@@ -40,8 +40,10 @@ input {
   width: 100%;
   padding: 10px;
   margin-bottom: 15px;
-  border: none;
+  border: 1px solid #ccc;
   border-radius: 4px;
+  background-color: #fff; /* mantém parte branca */
+  color: #000;
 }
 
 .button-group {
