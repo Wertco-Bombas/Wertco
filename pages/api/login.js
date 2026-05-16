@@ -2,6 +2,7 @@ export default function handler(req, res) {
   if (req.method === "POST") {
     const { user, password } = req.body;
 
+    // Usuários simulados
     const users = [
       { user: "admin", password: "123", role: "Admin" },
       { user: "supervisor", password: "123", role: "Supervisor" },
