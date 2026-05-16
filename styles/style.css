@@ -1,4 +1,4 @@
-/* Fundo geral */
+/* Login */
 body {
   margin: 0;
   font-family: Arial, sans-serif;
@@ -6,7 +6,66 @@ body {
   color: #f1c40f;
 }
 
-/* Navbar */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-box {
+  background-color: #000;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(241, 196, 15, 0.7);
+  width: 320px;
+}
+
+.login-title {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #f1c40f;
+  font-size: 24px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  color: #f1c40f;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #000;
+}
+
+.login-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #f1c40f;
+  color: #000;
+  font-weight: bold;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.login-button:hover {
+  background-color: #d4ac0d;
+}
+
+.login-message {
+  margin-top: 15px;
+  text-align: center;
+  color: #f1c40f;
+}
+
+/* Base de conhecimento */
 .navbar {
   background-color: #000;
   color: #f1c40f;
@@ -31,7 +90,18 @@ body {
   cursor: pointer;
 }
 
-/* Layout principal */
+.search-bar {
+  padding: 10px 20px;
+  background: #111;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
 .base-container {
   display: flex;
   background-color: #111;
@@ -86,7 +156,6 @@ body {
   border: 1px solid #ccc;
 }
 
-/* Sidebar */
 .sidebar {
   flex: 1;
   background: #000;
