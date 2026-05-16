@@ -14,40 +14,46 @@ export default function Base() {
 
   const [categories, setCategories] = useState([]);
   const [topics, setTopics] = useState([]);
+  const [comments, setComments] = useState({});
 
   const [modal, setModal] = useState(null);
-  const [newTopic, setNewTopic] = useState({ title: "", description: "", category: "HTML" });
+  const [selectedTopic, setSelectedTopic] = useState(null);
+
+  const [newTopic, setNewTopic] = useState({
+    title: "",
+    description: "",
+    category: "HTML"
+  });
+
   const [newCategory, setNewCategory] = useState("");
   const [deleteCat, setDeleteCat] = useState("HTML");
+  const [newComment, setNewComment] = useState("");
 
   // ---------------------------
-  // 🔐 AUTH + PROFILE
+  // 🔐 AUTH
   // ---------------------------
   useEffect(() => {
     async function loadUser() {
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
-        router.push("/");
-        return;
-      }
+      if (!user) return router.push("/");
 
       setUser(user);
 
-      const { data: profileData } = await supabase
+      const { data } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      setProfile(profileData);
+      setProfile(data);
     }
 
     loadUser();
   }, []);
 
   // ---------------------------
-  // 📊 LOAD TOPICS
+  // 📦 LOAD TOPICS
   // ---------------------------
   async function loadTopics() {
     const { data } = await supabase
@@ -60,12 +66,27 @@ export default function Base() {
   }
 
   // ---------------------------
-  // 📊 LOAD CATEGORIES
+  // 📦 LOAD CATEGORIES
   // ---------------------------
   async function loadCategories() {
     const { data } = await supabase.from("categories").select("*");
-
     setCategories(data?.map(c => c.name) || []);
+  }
+
+  // ---------------------------
+  // 💬 LOAD COMMENTS
+  // ---------------------------
+  async function loadComments(topicId) {
+    const { data } = await supabase
+      .from("comments")
+      .select("*")
+      .eq("topic_id", topicId)
+      .order("id", { ascending: true });
+
+    setComments(prev => ({
+      ...prev,
+      [topicId]: data || []
+    }));
   }
 
   useEffect(() => {
@@ -77,88 +98,82 @@ export default function Base() {
   // FILTER
   // ---------------------------
   const filteredTopics = topics.filter(t => {
-    const matchesSearch =
+    const matchSearch =
       t.title?.toLowerCase().includes(search.toLowerCase()) ||
       t.description?.toLowerCase().includes(search.toLowerCase());
 
-    const matchesFilter = filter === "Todas" || t.category === filter;
+    const matchFilter = filter === "Todas" || t.category === filter;
 
-    return matchesSearch && matchesFilter;
+    return matchSearch && matchFilter;
   });
 
   // ---------------------------
   // 🟡 CREATE TOPIC
   // ---------------------------
   async function saveTopic() {
-    if (!newTopic.title || !newTopic.description) return;
-
     await supabase.from("topics").insert({
-      title: newTopic.title,
-      description: newTopic.description,
-      category: newTopic.category,
+      ...newTopic,
       status: "pending",
       created_by: user.id
     });
 
-    await supabase.from("audit_log").insert({
-      action: "CREATE_TOPIC",
-      table_name: "topics",
-      record_id: newTopic.title,
-      user_id: user.id
-    });
-
     setModal(null);
     setNewTopic({ title: "", description: "", category: "HTML" });
-
-    await loadTopics(); // 🔥 ESSENCIAL
   }
 
   // ---------------------------
-  // 🟡 CREATE CATEGORY
+  // 🟢 APPROVE TOPIC
+  // ---------------------------
+  async function approveTopic(id) {
+    await supabase
+      .from("topics")
+      .update({ status: "approved" })
+      .eq("id", id);
+
+    loadTopics();
+  }
+
+  // ---------------------------
+  // 🔴 REJECT TOPIC
+  // ---------------------------
+  async function rejectTopic(id) {
+    await supabase.from("topics").delete().eq("id", id);
+    loadTopics();
+  }
+
+  // ---------------------------
+  // 🟡 CATEGORY
   // ---------------------------
   async function saveCategory() {
-    if (!newCategory) return;
-
-    await supabase.from("categories").insert({
-      name: newCategory
-    });
-
-    await supabase.from("audit_log").insert({
-      action: "CREATE_CATEGORY",
-      table_name: "categories",
-      record_id: newCategory,
-      user_id: user.id
-    });
+    await supabase.from("categories").insert({ name: newCategory });
 
     setModal(null);
     setNewCategory("");
-
-    await loadCategories(); // 🔥 ESSENCIAL
+    loadCategories();
   }
 
-  // ---------------------------
-  // 🟡 DELETE CATEGORY
-  // ---------------------------
   async function removeCategory() {
     await supabase.from("categories").delete().eq("name", deleteCat);
 
-    await supabase.from("audit_log").insert({
-      action: "DELETE_CATEGORY",
-      table_name: "categories",
-      record_id: deleteCat,
-      user_id: user.id
-    });
-
     setModal(null);
-    setDeleteCat("HTML");
-
-    await loadCategories();
-    await loadTopics(); // 🔥 remove tópicos órfãos atualiza tela
+    loadCategories();
+    loadTopics();
   }
 
   // ---------------------------
-  // LOADING STATE
+  // 💬 ADD COMMENT
   // ---------------------------
+  async function addComment(topicId) {
+    await supabase.from("comments").insert({
+      topic_id: topicId,
+      user_id: user.id,
+      content: newComment
+    });
+
+    setNewComment("");
+    loadComments(topicId);
+  }
+
   if (!user) return <p>Carregando...</p>;
 
   return (
@@ -168,30 +183,13 @@ export default function Base() {
         {/* USER INFO */}
         <div style={{ marginBottom: 10 }}>
           <p><strong>Usuário:</strong> {user.email}</p>
-          <p><strong>Nível:</strong> {profile?.role || "user"}</p>
-        </div>
-
-        {/* ADMIN AREA */}
-        {profile?.role === "admin" && (
-          <div style={{ background: "#222", color: "#fff", padding: 10, marginBottom: 10 }}>
-            Área Administrador
-          </div>
-        )}
-
-        {/* SEARCH */}
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Pesquisar..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <p><strong>Nível:</strong> {profile?.role}</p>
         </div>
 
         {/* ACTIONS */}
         <div className="actions">
           <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="Todas">Todas as categorias</option>
+            <option value="Todas">Todas</option>
             {categories.map((c, i) => (
               <option key={i} value={c}>{c}</option>
             ))}
@@ -199,96 +197,108 @@ export default function Base() {
 
           {(profile?.role === "admin" || profile?.role === "supervisor") && (
             <>
-              <button onClick={() => setModal("topic")}>+ Novo Tópico</button>
-              <button onClick={() => setModal("category")}>+ Nova Categoria</button>
+              <button onClick={() => setModal("topic")}>Novo Tópico</button>
+              <button onClick={() => setModal("category")}>Nova Categoria</button>
               <button onClick={() => setModal("delete")}>Excluir Categoria</button>
             </>
           )}
         </div>
 
         {/* TOPICS */}
-        <main className="content">
-          {filteredTopics.map(topic => (
-            <section key={topic.id} className="topic">
-              <h2>{topic.title}</h2>
-              <p>{topic.description}</p>
+        {filteredTopics.map(t => (
+          <div key={t.id} className="topic">
 
-              <div className="comments">
-                <input type="text" placeholder="Adicionar comentário" />
-                <button>Enviar</button>
-              </div>
-            </section>
-          ))}
-        </main>
+            <h2>{t.title}</h2>
+            <p>{t.description}</p>
 
-        {/* MODALS */}
-        {modal && (
+            {/* APPROVAL */}
+            {(profile?.role !== "user") && (
+              <>
+                <button onClick={() => approveTopic(t.id)}>Aprovar</button>
+                <button onClick={() => rejectTopic(t.id)}>Rejeitar</button>
+              </>
+            )}
+
+            {/* COMMENTS */}
+            <div>
+              <button onClick={() => loadComments(t.id)}>
+                Ver comentários
+              </button>
+
+              {comments[t.id]?.map(c => (
+                <p key={c.id}>💬 {c.content}</p>
+              ))}
+
+              <input
+                placeholder="Comentário"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+              />
+
+              <button onClick={() => addComment(t.id)}>
+                Enviar
+              </button>
+            </div>
+
+          </div>
+        ))}
+
+        {/* MODAL TOPIC */}
+        {modal === "topic" && (
           <div className="modal">
             <div className="modal-content">
+              <h2>Novo Tópico</h2>
 
-              {modal === "topic" && (
-                <>
-                  <h2>Novo Tópico (pendente aprovação)</h2>
-                  <input
-                    type="text"
-                    placeholder="Título"
-                    value={newTopic.title}
-                    onChange={(e) => setNewTopic({ ...newTopic, title: e.target.value })}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Descrição"
-                    value={newTopic.description}
-                    onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })}
-                  />
-                  <select
-                    value={newTopic.category}
-                    onChange={(e) => setNewTopic({ ...newTopic, category: e.target.value })}
-                  >
-                    {categories.map((c, i) => (
-                      <option key={i} value={c}>{c}</option>
-                    ))}
-                  </select>
+              <input
+                placeholder="Título"
+                onChange={(e) =>
+                  setNewTopic({ ...newTopic, title: e.target.value })
+                }
+              />
 
-                  <div className="modal-buttons">
-                    <button onClick={saveTopic}>Salvar</button>
-                    <button onClick={() => setModal(null)}>Voltar</button>
-                  </div>
-                </>
-              )}
+              <input
+                placeholder="Descrição"
+                onChange={(e) =>
+                  setNewTopic({ ...newTopic, description: e.target.value })
+                }
+              />
 
-              {modal === "category" && (
-                <>
-                  <h2>Nova Categoria</h2>
-                  <input
-                    type="text"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                  />
+              <button onClick={saveTopic}>Salvar</button>
+              <button onClick={() => setModal(null)}>Fechar</button>
+            </div>
+          </div>
+        )}
 
-                  <div className="modal-buttons">
-                    <button onClick={saveCategory}>Salvar</button>
-                    <button onClick={() => setModal(null)}>Voltar</button>
-                  </div>
-                </>
-              )}
+        {/* CATEGORY MODAL */}
+        {modal === "category" && (
+          <div className="modal">
+            <div className="modal-content">
+              <h2>Nova Categoria</h2>
 
-              {modal === "delete" && (
-                <>
-                  <h2>Excluir Categoria</h2>
-                  <select value={deleteCat} onChange={(e) => setDeleteCat(e.target.value)}>
-                    {categories.map((c, i) => (
-                      <option key={i} value={c}>{c}</option>
-                    ))}
-                  </select>
+              <input
+                onChange={(e) => setNewCategory(e.target.value)}
+              />
 
-                  <div className="modal-buttons">
-                    <button onClick={removeCategory}>Excluir</button>
-                    <button onClick={() => setModal(null)}>Voltar</button>
-                  </div>
-                </>
-              )}
+              <button onClick={saveCategory}>Salvar</button>
+              <button onClick={() => setModal(null)}>Fechar</button>
+            </div>
+          </div>
+        )}
 
+        {/* DELETE CATEGORY */}
+        {modal === "delete" && (
+          <div className="modal">
+            <div className="modal-content">
+              <h2>Excluir Categoria</h2>
+
+              <select onChange={(e) => setDeleteCat(e.target.value)}>
+                {categories.map((c, i) => (
+                  <option key={i} value={c}>{c}</option>
+                ))}
+              </select>
+
+              <button onClick={removeCategory}>Excluir</button>
+              <button onClick={() => setModal(null)}>Fechar</button>
             </div>
           </div>
         )}
