@@ -3,6 +3,7 @@ export default function Dashboard(){
   
   return(
     <div className="page">
+    <div className="container">
 
       <div className="topbar">
 
