@@ -1,23 +1,18 @@
-/* Layout geral */
-.layout-container {
-  min-height: 100vh;
-  background: #000;
-  color: #f1c40f;
-  display: flex;
-  flex-direction: column;
-  font-family: Arial, sans-serif;
-}
-
 /* Menu superior */
 .menu {
   display: flex;
-  gap: 10px;
+  justify-content: flex-end;
   padding: 15px;
   background: #111;
   border-bottom: 1px solid #f1c40f;
 }
 
-.menu button {
+.menu-right {
+  display: flex;
+  gap: 10px;
+}
+
+.menu-right button {
   padding: 8px 12px;
   border: none;
   border-radius: 4px;
@@ -28,74 +23,22 @@
   transition: background 0.3s, transform 0.2s;
 }
 
-.menu button:hover {
+.menu-right button:hover {
   background: #d4ac0d;
   transform: scale(1.05);
-}
-
-/* Conteúdo principal */
-main {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 30px;
 }
 
 /* Dashboard */
 .dashboard-container {
   text-align: center;
-  width: 100%;
+  padding: 40px;
 }
 
 .dashboard-container h1 {
   color: #f1c40f;
-  margin-bottom: 10px;
-}
-
-.dashboard-container p {
-  color: #ccc;
-  margin-bottom: 20px;
-}
-
-.dashboard-cards {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 30px;
-}
-
-.card {
-  background: #111;
-  border: 1px solid #f1c40f;
-  border-radius: 8px;
-  padding: 20px;
-  width: 220px;
-  cursor: pointer;
-  transition: transform 0.2s, background 0.3s;
-}
-
-.card h2 {
-  color: #f1c40f;
-  margin-bottom: 10px;
-}
-
-.card p {
-  color: #ccc;
-}
-
-.card:hover {
-  transform: scale(1.05);
-  background: #222;
-}
-
-/* Páginas internas */
-.layout-container h1 {
-  color: #f1c40f;
   margin-bottom: 15px;
 }
 
-.layout-container p {
+.dashboard-container p {
   color: #ccc;
 }
