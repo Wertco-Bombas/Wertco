@@ -2,6 +2,23 @@ import { useState } from "react";
 
 export default function Base() {
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("Todas");
+
+  // tópicos simulados
+  const topics = [
+    { id: 1, category: "HTML", title: "HTML Básico", description: "Estrutura de páginas web." },
+    { id: 2, category: "CSS", title: "CSS Avançado", description: "Estilização e responsividade." },
+    { id: 3, category: "Instalação", title: "P8", description: "Erro de instalação." }
+  ];
+
+  // lógica de pesquisa e filtro
+  const filteredTopics = topics.filter(t => {
+    const matchesSearch =
+      t.title.toLowerCase().includes(search.toLowerCase()) ||
+      t.description.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = filter === "Todas" || t.category === filter;
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <div className="base-container">
@@ -15,66 +32,37 @@ export default function Base() {
         </ul>
       </header>
 
-      {/* Barra de pesquisa logo abaixo */}
+      {/* Barra de pesquisa */}
       <div className="search-bar">
         <input
           type="text"
-          placeholder="Pesquisar títulos, descrições, categorias, comentários e nomes..."
+          placeholder="Pesquisar títulos, descrições, categorias, comentários..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      {/* Botões de ação */}
+      {/* Filtro e botões de ação */}
       <div className="actions">
-        <button>Todas as categorias</button>
+        <button onClick={() => setFilter("Todas")}>Todas as categorias</button>
         <button>+ Novo Tópico</button>
         <button>+ Nova Categoria</button>
         <button>Excluir Categoria</button>
       </div>
 
-      {/* Conteúdo principal */}
+      {/* Lista de tópicos */}
       <main className="content">
-        <section className="category">
-          <h2>HTML Básico</h2>
-          <p>Estrutura de páginas web.</p>
-          <div className="comments">
-            <p><strong>Usuário Comum</strong> (04/05/2026, 17:54:51) — Pendente</p>
-            <button>Aprovar</button>
-            <button>Rejeitar</button>
-            <input type="text" placeholder="Adicionar comentário" />
-            <button>Enviar</button>
-          </div>
-        </section>
-
-        <section className="category">
-          <h2>CSS Avançado</h2>
-          <p>Estilização e responsividade.</p>
-          <div className="comments">
-            <p>Sem comentários</p>
-            <input type="text" placeholder="Adicionar comentário" />
-            <button>Enviar</button>
-          </div>
-        </section>
-
-        <section className="category">
-          <h2>P8</h2>
-          <p>Erro de instalação.</p>
-          <div className="comments">
-            <p>Sem comentários</p>
-            <input type="text" placeholder="Adicionar comentário" />
-            <button>Enviar</button>
-          </div>
-        </section>
+        {filteredTopics.map(topic => (
+          <section key={topic.id} className="topic">
+            <h2>{topic.title}</h2>
+            <p>{topic.description}</p>
+            <div className="comments">
+              <input type="text" placeholder="Adicionar comentário" />
+              <button>Enviar</button>
+            </div>
+          </section>
+        ))}
       </main>
-
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <h3>Comentários pendentes</h3>
-        <p>HTML Básico — Comentário id_5egfoik por user</p>
-        <button>Fechar</button>
-        <button>Ir</button>
-      </aside>
     </div>
   );
 }
