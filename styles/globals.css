@@ -2,37 +2,35 @@ body {
   background: #0f0f0f;
   color: #fff;
   font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
+/* CONTAINER BASE */
 .base-container {
   max-width: 1100px;
   margin: auto;
   padding: 20px;
 }
 
+/* ❌ REMOVIDO CONFLITO GLOBAL DE BOTÃO */
+/* antes: button { ... } */
+
+/* Agora só um estilo base leve (não quebra layout) */
 button {
-  background: #FFD700;
-  color: #000;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 8px;
   cursor: pointer;
-  font-weight: bold;
-  margin: 4px;
 }
 
-button:hover {
-  opacity: 0.85;
+/* ❌ REMOVIDO CONFLITO GLOBAL DE INPUT/SELECT */
+/* antes: input, select { width:100% ... } */
+
+/* agora só base leve */
+input,
+select {
+  font-family: inherit;
 }
 
-input, select {
-  padding: 10px;
-  border-radius: 6px;
-  border: none;
-  margin: 5px;
-  width: 100%;
-}
-
+/* TOPIC CARD SIMPLES (fallback) */
 .topic {
   background: #1a1a1a;
   padding: 15px;
@@ -41,16 +39,18 @@ input, select {
   border: 1px solid #333;
 }
 
+/* MODAL */
 .modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 999;
 }
 
 .modal-content {
@@ -58,4 +58,22 @@ input, select {
   padding: 20px;
   border-radius: 10px;
   width: 400px;
+}
+
+/* =========================
+   VARIÁVEIS DE TEMA
+========================= */
+:root {
+  --yellow: #ffd700;
+  --yellow-soft: rgba(255, 215, 0, 0.1);
+  --danger: #ff4d4d;
+  --border: #222;
+}
+
+/* =========================
+   AJUSTE GLOBAL LIMPO
+========================= */
+
+* {
+  box-sizing: border-box;
 }
