@@ -37,6 +37,10 @@ export default function Base() {
     <div className="base-container">
       <h1>Base de Conhecimento</h1>
 
+      {/* Barra de pesquisa */}
+      <input type="text" placeholder="Pesquisar títulos, descrições, categorias, comentários..." className="search-bar" />
+
+      {/* Botões de ação */}
       <div className="actions">
         <button onClick={() => window.location.href='/nova-categoria'}>+ Nova Categoria</button>
         <button onClick={() => window.location.href='/novo-topico'}>+ Novo Tópico</button>
@@ -44,30 +48,42 @@ export default function Base() {
         <button onClick={() => window.location.href='/excluir-topico'}>- Excluir Tópico</button>
       </div>
 
+      {/* Lista de categorias */}
       <h2>Categorias</h2>
-      <ul>
+      <div className="categorias-list">
         {categorias.map(cat => (
-          <li key={cat.id}>{cat.nome}</li>
+          <div key={cat.id} className="categoria-card">
+            <h3>{cat.nome}</h3>
+            {cat.descricao && <p>{cat.descricao}</p>}
+          </div>
         ))}
-      </ul>
+      </div>
 
+      {/* Lista de tópicos com comentários */}
       <h2>Tópicos</h2>
-      <ul>
+      <div className="topicos-list">
         {topicos.map(top => (
-          <li key={top.id}>
-            <strong>{top.titulo}</strong>
+          <div key={top.id} className="topico-card">
+            <h3>{top.titulo}</h3>
             {top.conteudo && <p>{top.conteudo}</p>}
-            <input 
-              type="text" 
-              placeholder="Comentar..." 
-              value={novoComentario} 
-              onChange={(e) => setNovoComentario(e.target.value)} 
-            />
-            <button onClick={() => salvarComentario(top.id)}>Enviar Comentário</button>
-          </li>
-        ))}
-      </ul>
 
+            {/* Comentários */}
+            <div className="comentarios">
+              <h4>Comentários</h4>
+              {/* Aqui você pode carregar comentários do Supabase */}
+              <input 
+                type="text" 
+                placeholder="Adicionar comentário..." 
+                value={novoComentario} 
+                onChange={(e) => setNovoComentario(e.target.value)} 
+              />
+              <button onClick={() => salvarComentario(top.id)}>Enviar</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Navegação */}
       <button onClick={() => window.location.href='/dashboard'}>Voltar ao Dashboard</button>
       <button onClick={handleLogout}>Sair</button>
     </div>
