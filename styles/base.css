@@ -83,7 +83,6 @@ ul li {
   border-radius: 4px;
 }
 
-/* Input + clipe + botão alinhados à direita */
 .comentario-input {
   display: flex;
   align-items: center;
