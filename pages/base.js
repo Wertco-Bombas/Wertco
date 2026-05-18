@@ -47,6 +47,14 @@ export default function Base() {
     }
   }
 
+  // Excluir categoria (remove tópicos vinculados antes)
+  async function excluirCategoria(id) {
+    await supabase.from('topicos').delete().eq('categoria_id', id);
+    const { error } = await supabase.from('categorias').delete().eq('id', id);
+    if (error) alert(error.message);
+    else alert('Categoria e tópicos excluídos!');
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut();
     window.location.href = '/';
@@ -78,6 +86,7 @@ export default function Base() {
           <div key={cat.id} className="categoria-card">
             <h3>{cat.nome}</h3>
             {cat.descricao && <p>{cat.descricao}</p>}
+            <button onClick={() => excluirCategoria(cat.id)}>Excluir esta categoria</button>
           </div>
         ))}
       </div>
