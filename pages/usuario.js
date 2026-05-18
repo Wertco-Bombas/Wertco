@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import Layout from "../components/Layout";
 
-export default function Users() {
+export default function Usuario() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("user");
@@ -82,11 +82,9 @@ export default function Users() {
   return (
     <Layout>
       <div className="card">
-
         <h2>👤 Criar Usuário</h2>
 
         <div className="searchBar">
-
           <input
             className="input"
             placeholder="Email"
@@ -119,9 +117,7 @@ export default function Users() {
           >
             {loading ? "Criando..." : "Criar usuário"}
           </button>
-
         </div>
-
       </div>
     </Layout>
   );
