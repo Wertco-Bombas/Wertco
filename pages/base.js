@@ -8,7 +8,6 @@ export default function Base() {
   const [novoComentario, setNovoComentario] = useState({});
   const [imagem, setImagem] = useState({});
 
-  // Carregar tópicos já com categoria associada
   useEffect(() => {
     async function carregarDados() {
       const { data: tops, error } = await supabase
@@ -16,7 +15,6 @@ export default function Base() {
         .select('id, titulo, conteudo, categoria_id, categorias(nome), imagem_url');
       if (!error) {
         setTopicos(tops || []);
-        // já carrega comentários de todos
         for (const t of tops || []) {
           carregarComentarios(t.id);
         }
@@ -25,7 +23,6 @@ export default function Base() {
     carregarDados();
   }, []);
 
-  // Carregar comentários de um tópico
   async function carregarComentarios(topicoId) {
     const { data, error } = await supabase
       .from('comentarios')
@@ -36,7 +33,6 @@ export default function Base() {
     }
   }
 
-  // Salvar comentário
   async function salvarComentario(topicoId) {
     const conteudo = novoComentario[topicoId] || '';
     if (!conteudo.trim()) return;
@@ -51,7 +47,6 @@ export default function Base() {
     }
   }
 
-  // Upload e compressão de imagem
   async function uploadImagem(file, topicoId) {
     if (!file) return;
     try {
@@ -79,14 +74,12 @@ export default function Base() {
     <div className="base-container">
       <h1>Base de Conhecimento</h1>
 
-      {/* Barra de pesquisa */}
       <input
         type="text"
         placeholder="Pesquisar títulos, descrições, categorias, comentários..."
         className="search-bar"
       />
 
-      {/* Botões de ação */}
       <div className="actions">
         <button onClick={() => window.location.href='/nova-categoria'}>+ Nova Categoria</button>
         <button onClick={() => window.location.href='/novo-topico'}>+ Novo Tópico</button>
@@ -105,7 +98,6 @@ export default function Base() {
 
             {top.conteudo && <p>{top.conteudo}</p>}
 
-            {/* Mostrar imagem se existir */}
             {top.imagem_url && (
               <img
                 src={top.imagem_url}
@@ -114,7 +106,6 @@ export default function Base() {
               />
             )}
 
-            {/* Upload de imagem com ícone de clipe */}
             <label className="clip-upload">
               📎
               <input
@@ -128,7 +119,6 @@ export default function Base() {
             </label>
             <button onClick={() => uploadImagem(imagem[top.id], top.id)}>Enviar</button>
 
-            {/* Comentários */}
             <div className="comentarios">
               <h4>Comentários</h4>
               <ul>
