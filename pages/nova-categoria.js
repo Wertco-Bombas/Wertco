@@ -14,7 +14,7 @@ export default function NovaCategoria() {
       alert(error.message);
     } else {
       alert('Categoria criada com sucesso!');
-      window.location.href = '/base'; // volta para a Base de Conhecimento
+      window.location.href = '/base';
     }
   }
 
