@@ -1,0 +1,99 @@
+.base-container {
+  background-color: #111; /* fundo escuro */
+  color: #f5f5f5; /* texto claro */
+  min-height: 100vh;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+h1, h2, h3, h4 {
+  color: #ffd700; /* amarelo dourado */
+}
+
+.search-bar {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 20px;
+  background: #222;
+  border: 1px solid #444;
+  color: #fff;
+}
+
+.actions button,
+.navigation button,
+.categoria-card button,
+.topico-card button {
+  background-color: #ffd700;
+  color: #111;
+  border: none;
+  padding: 8px 12px;
+  margin: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.actions button:hover,
+.navigation button:hover,
+.categoria-card button:hover,
+.topico-card button:hover {
+  background-color: #ffcc00;
+}
+
+.layout-grid {
+  display: flex;
+  gap: 20px;
+}
+
+.topicos-col {
+  flex: 2;
+}
+
+.categorias-col {
+  flex: 1;
+}
+
+.topico-card, .categoria-card {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+}
+
+.comentarios {
+  margin-top: 10px;
+}
+
+.comentarios input {
+  width: 80%;
+  padding: 8px;
+  margin-right: 5px;
+  background: #222;
+  border: 1px solid #444;
+  color: #fff;
+}
+
+.comentarios button {
+  background-color: #ffd700;
+  color: #111;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.comentarios button:hover {
+  background-color: #ffcc00;
+}
+
+ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+ul li {
+  background: #222;
+  padding: 6px;
+  margin-bottom: 5px;
+  border-radius: 4px;
+}
