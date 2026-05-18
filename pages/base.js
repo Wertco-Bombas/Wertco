@@ -44,6 +44,8 @@ export default function Base() {
     if (!error) {
       setNovoComentario(prev => ({ ...prev, [topicoId]: '' }));
       carregarComentarios(topicoId);
+    } else {
+      alert('Erro ao salvar comentário: ' + error.message);
     }
   }
 
@@ -64,6 +66,8 @@ export default function Base() {
           .from('topicos')
           .select('id, titulo, conteudo, categoria_id, categorias(nome), imagem_url');
         setTopicos(tops || []);
+      } else {
+        alert('Erro ao enviar imagem: ' + error.message);
       }
     } catch (err) {
       alert('Erro ao comprimir/enviar imagem: ' + err.message);
@@ -106,19 +110,6 @@ export default function Base() {
               />
             )}
 
-            <label className="clip-upload">
-              📎
-              <input
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={(e) =>
-                  setImagem(prev => ({ ...prev, [top.id]: e.target.files[0] }))
-                }
-              />
-            </label>
-            <button onClick={() => uploadImagem(imagem[top.id], top.id)}>Enviar</button>
-
             <div className="comentarios">
               <h4>Comentários</h4>
               <ul>
@@ -149,7 +140,7 @@ export default function Base() {
                     accept="image/*"
                     style={{ display: 'none' }}
                     onChange={(e) =>
-                      setImagem(prev => ({ ...prev, [top.id]: e.target.files[0] }))
+                      uploadImagem(e.target.files[0], top.id)
                     }
                   />
                 </label>
