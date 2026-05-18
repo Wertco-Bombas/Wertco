@@ -1,77 +1,58 @@
 import { useRouter } from "next/router";
 
 export default function Dashboard() {
-
   const router = useRouter();
 
-  return(
+  return (
     <div className="page">
       <div className="container">
 
+        {/* TOPBAR */}
         <div className="topbar">
-
-          <div className="logoArea">
-            <div className="logoIcon">◉</div>
+          <div className="logo">
+            <div className="logoBox">◉</div>
             <div className="logoText">Don</div>
           </div>
 
-          <div
-            style={{
-              display:'flex',
-              alignItems:'center',
-              gap:'12px'
-            }}
-          >
-
+          <div style={{ display: "flex", gap: 10 }}>
             <div className="userInfo">
               Administrador <span className="admin">(Admin)</span>
             </div>
 
-            <button
-              className="logoutBtn"
-              onClick={() => window.location.href = '/login'}
-            >
+            <button onClick={() => router.push("/login")}>
               Sair
             </button>
-
           </div>
-
         </div>
 
-        {/* MENU */}
-        <div className="menu">
+        {/* NAVIGATION PROFISSIONAL */}
+        <div className="nav">
 
-          <button
-            className="menuBtn"
-            onClick={() => router.push("/base")}
-          >
+          <button className="navBtn" onClick={() => router.push("/base")}>
             Base de conhecimento
           </button>
 
-          <button
-            className="menuBtn"
-            onClick={() => router.push("/usuario")}
-          >
-            Usuário
+          <button className="navBtn" onClick={() => router.push("/usuarios")}>
+            Usuários
           </button>
 
-          <button
-            className="menuBtn"
-            onClick={() => router.push("/treinamento")}
-          >
+          <button className="navBtn" onClick={() => router.push("/treinamento")}>
             Treinamento
           </button>
 
-          <button
-            className="menuBtn"
-            onClick={() => router.push("/auditoria")}
-          >
+          <button className="navBtn" onClick={() => router.push("/auditoria")}>
             Auditoria
           </button>
 
         </div>
 
+        {/* DASHBOARD HOME */}
+        <div className="card">
+          <h2>Bem-vindo ao sistema</h2>
+          <p>Selecione uma área no menu acima para começar.</p>
+        </div>
+
       </div>
     </div>
-  )
+  );
 }
