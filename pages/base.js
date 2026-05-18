@@ -128,7 +128,7 @@ export default function Base() {
             </label>
             <button onClick={() => uploadImagem(imagem[top.id], top.id)}>Enviar</button>
 
-            {/* Comentários (sem botão carregar) */}
+            {/* Comentários */}
             <div className="comentarios">
               <h4>Comentários</h4>
               <ul>
@@ -137,15 +137,35 @@ export default function Base() {
                 ))}
               </ul>
 
-              <input
-                type="text"
-                placeholder="Adicionar comentário..."
-                value={novoComentario[top.id] || ''}
-                onChange={(e) =>
-                  setNovoComentario(prev => ({ ...prev, [top.id]: e.target.value }))
-                }
-              />
-              <button onClick={() => salvarComentario(top.id)}>Enviar</button>
+              <div className="comentario-input">
+                <input
+                  type="text"
+                  placeholder="Adicionar comentário..."
+                  value={novoComentario[top.id] || ''}
+                  onChange={(e) =>
+                    setNovoComentario(prev => ({ ...prev, [top.id]: e.target.value }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      salvarComentario(top.id);
+                    }
+                  }}
+                />
+
+                <label className="clip-upload">
+                  📎
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) =>
+                      setImagem(prev => ({ ...prev, [top.id]: e.target.files[0] }))
+                    }
+                  />
+                </label>
+
+                <button onClick={() => salvarComentario(top.id)}>Enviar</button>
+              </div>
             </div>
           </div>
         ))}
