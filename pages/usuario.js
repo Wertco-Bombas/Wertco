@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import Layout from "../components/Layout";
 
-export default function Usuario() {
+export default function Usuarios() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("user");
@@ -12,7 +12,9 @@ export default function Usuario() {
   // Buscar usuários já cadastrados
   useEffect(() => {
     async function fetchUsers() {
-      const { data, error } = await supabase.from("profiles").select("id, email, role");
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, email, role");
       if (!error) {
         setUsers(data);
       }
@@ -45,7 +47,9 @@ export default function Usuario() {
 
       if (!user) {
         setLoading(false);
-        alert("Usuário criado no Auth, mas não retornado. Verifique email confirmation no Supabase.");
+        alert(
+          "Usuário criado no Auth, mas não retornado. Verifique email confirmation no Supabase."
+        );
         return;
       }
 
@@ -57,17 +61,17 @@ export default function Usuario() {
         .maybeSingle();
 
       if (!existingProfile) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .insert({
-            id: user.id,
-            email: email,
-            role: role,
-          });
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: user.id,
+          email: email,
+          role: role,
+        });
 
         if (profileError) {
           setLoading(false);
-          alert("Usuário criado, mas erro ao criar perfil: " + profileError.message);
+          alert(
+            "Usuário criado, mas erro ao criar perfil: " + profileError.message
+          );
           return;
         }
       }
@@ -80,13 +84,33 @@ export default function Usuario() {
       setRole("user");
 
       // Atualizar lista
-      const { data: updatedUsers } = await supabase.from("profiles").select("id, email, role");
+      const { data: updatedUsers } = await supabase
+        .from("profiles")
+        .select("id, email, role");
       setUsers(updatedUsers);
-
     } catch (err) {
       setLoading(false);
       alert("Erro inesperado: " + err.message);
     }
+  }
+
+  async function deleteUser(id) {
+    if (!confirm("Tem certeza que deseja excluir este usuário?")) return;
+
+    // Excluir do profiles
+    const { error } = await supabase.from("profiles").delete().eq("id", id);
+    if (error) {
+      alert("Erro ao excluir perfil: " + error.message);
+      return;
+    }
+
+    // Atualizar lista
+    const { data: updatedUsers } = await supabase
+      .from("profiles")
+      .select("id, email, role");
+    setUsers(updatedUsers);
+
+    alert("Usuário excluído com sucesso!");
   }
 
   return (
@@ -139,7 +163,17 @@ export default function Usuario() {
             <ul>
               {users.map((u) => (
                 <li key={u.id} className="comment">
-                  <strong>{u.email}</strong> — <span>{u.role}</span>
+                  <div className="commentTop">
+                    <strong>{u.email}</strong> — <span>{u.role}</span>
+                  </div>
+                  <div className="actions">
+                    <button
+                      className="smallBtn reject"
+                      onClick={() => deleteUser(u.id)}
+                    >
+                      Excluir
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
