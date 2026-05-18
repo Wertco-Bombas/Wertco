@@ -71,29 +71,6 @@ h1, h2 {
   margin-top: 15px;
 }
 
-.comentarios input {
-  width: 70%;
-  padding: 8px;
-  margin-right: 5px;
-  background: #222;
-  border: 1px solid #444;
-  color: #fff;
-}
-
-.comentarios button {
-  background-color: #ffd700;
-  color: #111;
-  border: none;
-  padding: 8px 12px;
-  cursor: pointer;
-  font-weight: bold;
-  border-radius: 4px;
-}
-
-.comentarios button:hover {
-  background-color: #ffcc00;
-}
-
 ul {
   list-style: none;
   padding-left: 0;
@@ -106,14 +83,34 @@ ul li {
   border-radius: 4px;
 }
 
-/* Ícone de clipe para upload */
+/* Input + clipe + botão alinhados à direita */
+.comentario-input {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.comentario-input input {
+  flex: 1;
+  padding: 8px;
+  background: #222;
+  border: 1px solid #444;
+  color: #fff;
+}
+
 .clip-upload {
   cursor: pointer;
   font-size: 20px;
-  margin-right: 10px;
   color: #ffd700;
 }
 
 .clip-upload:hover {
   color: #ffcc00;
 }
+
+.comentario-input button {
+  background-color: #ffd700;
+  color: #111;
+  border
