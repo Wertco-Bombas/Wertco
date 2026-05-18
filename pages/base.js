@@ -41,9 +41,8 @@ export default function Base() {
     if (error) {
       alert(error.message);
     } else {
-      alert('Comentário adicionado!');
       setNovoComentario(prev => ({ ...prev, [topicoId]: '' }));
-      carregarComentarios(topicoId); // atualiza lista
+      carregarComentarios(topicoId);
     }
   }
 
@@ -79,53 +78,59 @@ export default function Base() {
         <button onClick={() => window.location.href='/excluir-topico'}>- Excluir Tópico</button>
       </div>
 
-      {/* Lista de categorias */}
-      <h2>Categorias</h2>
-      <div className="categorias-list">
-        {categorias.map(cat => (
-          <div key={cat.id} className="categoria-card">
-            <h3>{cat.nome}</h3>
-            {cat.descricao && <p>{cat.descricao}</p>}
-            <button onClick={() => excluirCategoria(cat.id)}>Excluir esta categoria</button>
-          </div>
-        ))}
-      </div>
+      {/* Layout em duas colunas */}
+      <div className="layout-grid" style={{ display: 'flex', gap: '20px' }}>
+        
+        {/* Coluna esquerda: tópicos */}
+        <div className="topicos-col" style={{ flex: 2 }}>
+          <h2>Tópicos</h2>
+          {topicos.map(top => (
+            <div key={top.id} className="topico-card" style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '15px' }}>
+              <h3>{top.titulo}</h3>
+              {top.conteudo && <p>{top.conteudo}</p>}
 
-      {/* Lista de tópicos com comentários */}
-      <h2>Tópicos</h2>
-      <div className="topicos-list">
-        {topicos.map(top => (
-          <div key={top.id} className="topico-card">
-            <h3>{top.titulo}</h3>
-            {top.conteudo && <p>{top.conteudo}</p>}
+              {/* Comentários */}
+              <div className="comentarios">
+                <h4>Comentários</h4>
+                <button onClick={() => carregarComentarios(top.id)}>Carregar comentários</button>
+                <ul>
+                  {(comentarios[top.id] || []).map(com => (
+                    <li key={com.id}>{com.conteudo}</li>
+                  ))}
+                </ul>
 
-            {/* Comentários */}
-            <div className="comentarios">
-              <h4>Comentários</h4>
-              <button onClick={() => carregarComentarios(top.id)}>Carregar comentários</button>
-              <ul>
-                {(comentarios[top.id] || []).map(com => (
-                  <li key={com.id}>{com.conteudo}</li>
-                ))}
-              </ul>
-
-              <input
-                type="text"
-                placeholder="Adicionar comentário..."
-                value={novoComentario[top.id] || ''}
-                onChange={(e) =>
-                  setNovoComentario(prev => ({ ...prev, [top.id]: e.target.value }))
-                }
-              />
-              <button onClick={() => salvarComentario(top.id)}>Enviar</button>
+                <input
+                  type="text"
+                  placeholder="Adicionar comentário..."
+                  value={novoComentario[top.id] || ''}
+                  onChange={(e) =>
+                    setNovoComentario(prev => ({ ...prev, [top.id]: e.target.value }))
+                  }
+                />
+                <button onClick={() => salvarComentario(top.id)}>Enviar</button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+
+        {/* Coluna direita: categorias */}
+        <div className="categorias-col" style={{ flex: 1 }}>
+          <h2>Categorias</h2>
+          {categorias.map(cat => (
+            <div key={cat.id} className="categoria-card" style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '15px' }}>
+              <h3>{cat.nome}</h3>
+              {cat.descricao && <p>{cat.descricao}</p>}
+              <button onClick={() => excluirCategoria(cat.id)}>Excluir esta categoria</button>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Navegação */}
-      <button onClick={() => window.location.href='/dashboard'}>Voltar ao Dashboard</button>
-      <button onClick={handleLogout}>Sair</button>
+      <div className="navigation" style={{ marginTop: '20px' }}>
+        <button onClick={() => window.location.href='/dashboard'}>Voltar ao Dashboard</button>
+        <button onClick={handleLogout}>Sair</button>
+      </div>
     </div>
   );
 }
