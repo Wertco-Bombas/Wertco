@@ -2,6 +2,11 @@ import Link from 'next/link';
 import { supabase } from '../lib/supabase';
 
 export default function Dashboard() {
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  }
+
   return (
     <div className="dashboard-container">
       <h1>Dashboard</h1>
@@ -11,7 +16,7 @@ export default function Dashboard() {
         <li><Link href="/auditoria">Auditoria</Link></li>
         <li><Link href="/usuarios">Usuários</Link></li>
       </ul>
-      <button onClick={() => supabase.auth.signOut()}>Sair</button>
+      <button onClick={handleLogout}>Sair</button>
     </div>
   );
 }
