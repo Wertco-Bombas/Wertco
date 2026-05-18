@@ -5,8 +5,9 @@ export default function Base() {
   const [categorias, setCategorias] = useState([]);
   const [topicos, setTopicos] = useState([]);
   const [comentarios, setComentarios] = useState({});
-  const [novoComentario, setNovoComentario] = useState('');
+  const [novoComentario, setNovoComentario] = useState({});
 
+  // Carregar categorias e tópicos
   useEffect(() => {
     async function carregarDados() {
       const { data: cats } = await supabase.from('categorias').select('*');
@@ -17,14 +18,32 @@ export default function Base() {
     carregarDados();
   }, []);
 
+  // Carregar comentários de um tópico
+  async function carregarComentarios(topicoId) {
+    const { data, error } = await supabase
+      .from('comentarios')
+      .select('*')
+      .eq('topico_id', topicoId);
+    if (!error) {
+      setComentarios(prev => ({ ...prev, [topicoId]: data }));
+    }
+  }
+
+  // Salvar comentário
   async function salvarComentario(topicoId) {
+    const conteudo = novoComentario[topicoId] || '';
+    if (!conteudo.trim()) return;
+
     const { error } = await supabase
       .from('comentarios')
-      .insert({ conteudo: novoComentario, topico_id: topicoId });
-    if (error) alert(error.message);
-    else {
+      .insert({ conteudo, topico_id: topicoId });
+
+    if (error) {
+      alert(error.message);
+    } else {
       alert('Comentário adicionado!');
-      setNovoComentario('');
+      setNovoComentario(prev => ({ ...prev, [topicoId]: '' }));
+      carregarComentarios(topicoId); // atualiza lista
     }
   }
 
@@ -38,7 +57,11 @@ export default function Base() {
       <h1>Base de Conhecimento</h1>
 
       {/* Barra de pesquisa */}
-      <input type="text" placeholder="Pesquisar títulos, descrições, categorias, comentários..." className="search-bar" />
+      <input
+        type="text"
+        placeholder="Pesquisar títulos, descrições, categorias, comentários..."
+        className="search-bar"
+      />
 
       {/* Botões de ação */}
       <div className="actions">
@@ -70,12 +93,20 @@ export default function Base() {
             {/* Comentários */}
             <div className="comentarios">
               <h4>Comentários</h4>
-              {/* Aqui você pode carregar comentários do Supabase */}
-              <input 
-                type="text" 
-                placeholder="Adicionar comentário..." 
-                value={novoComentario} 
-                onChange={(e) => setNovoComentario(e.target.value)} 
+              <button onClick={() => carregarComentarios(top.id)}>Carregar comentários</button>
+              <ul>
+                {(comentarios[top.id] || []).map(com => (
+                  <li key={com.id}>{com.conteudo}</li>
+                ))}
+              </ul>
+
+              <input
+                type="text"
+                placeholder="Adicionar comentário..."
+                value={novoComentario[top.id] || ''}
+                onChange={(e) =>
+                  setNovoComentario(prev => ({ ...prev, [top.id]: e.target.value }))
+                }
               />
               <button onClick={() => salvarComentario(top.id)}>Enviar</button>
             </div>
