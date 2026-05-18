@@ -3,22 +3,36 @@
   --yellow-soft: rgba(255,214,0,0.12);
   --danger: #ff6b47;
   --border: #1f1f1f;
+  --bg-dark: #050505;
+  --bg-darker: #0b0b0b;
+  --muted: #d1d5db;
 }
 
 /* Layout base */
+*{box-sizing: border-box}
+html,body{height:100%}
+body{
+  margin: 0;
+  background: #000;
+  color: #fff;
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* Page wrapper */
 .page{
   min-height: 100vh;
   background: #000;
   padding: 20px;
-  box-sizing: border-box;
-  color: #fff;
-  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
+/* Central container */
 .container{
   width: 100%;
   max-width: 1220px;
   margin: 0 auto;
+  position: relative;
 }
 
 /* Topbar / header */
@@ -41,7 +55,7 @@
   width: 54px;
   height: 54px;
   border-radius: 14px;
-  background: #0b0b0b;
+  background: var(--bg-darker);
   border: 1px solid #1f1f1f;
   display: flex;
   align-items: center;
@@ -58,12 +72,20 @@
   line-height: 1;
 }
 
-/* Right side of topbar: user info + logout */
+/* User info and logout fixed to top-right of the viewport */
 .userInfo{
+  position: fixed;
+  top: 20px;
+  right: 20px;
   display: flex;
   align-items: center;
   gap: 12px;
-  white-space: nowrap;
+  z-index: 999;
+  background: rgba(11,11,11,0.6);
+  border: 1px solid rgba(255,214,0,0.06);
+  padding: 8px 12px;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
 }
 
 .userEmail{
@@ -73,22 +95,33 @@
   max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Navigation buttons (menu) */
+/* Navigation area (buttons shown on dashboard) */
 .nav{
   display: flex;
-  flex-wrap: wrap;
   gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
   justify-content: flex-start;
+}
+
+/* If you want a grid of large menu buttons on the dashboard */
+.menuGrid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
   margin-bottom: 24px;
 }
 
-.navBtn{
-  min-width: 180px;
+/* Generic nav button style */
+.navBtn,
+.menuBtn{
+  min-width: 160px;
   text-align: center;
   border: 1px solid #2a2a2a;
-  background: #050505;
+  background: var(--bg-dark);
   color: var(--yellow);
   border-radius: 999px;
   padding: 12px 18px;
@@ -99,18 +132,50 @@
   align-items: center;
   justify-content: center;
   text-decoration: none;
+  user-select: none;
 }
 
+/* Larger, card-like menu button for dashboard */
+.menuBtn{
+  border-radius: 14px;
+  background: linear-gradient(180deg, #0b0b0b, #070707);
+  border: 1px solid rgba(255,214,0,0.04);
+  padding: 18px;
+  min-height: 84px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+
+/* Icon placeholder inside menu button */
+.menuBtn .icon{
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255,214,0,0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* Hover / focus states */
 .navBtn:hover,
-.navBtn:focus{
+.navBtn:focus,
+.menuBtn:hover,
+.menuBtn:focus{
   background: var(--yellow-soft);
-  transform: translateY(-2px);
+  transform: translateY(-4px);
   outline: none;
 }
 
 /* Card */
 .card{
-  background: linear-gradient(to bottom,#0b0b0b,#090909);
+  background: linear-gradient(to bottom,var(--bg-darker),#090909);
   border: 1px solid var(--border);
   border-radius: 22px;
   padding: 20px;
@@ -134,11 +199,10 @@
   height: 52px;
   border-radius: 16px;
   border: 1px solid #222;
-  background: #050505;
+  background: var(--bg-dark);
   color: white;
   padding: 0 18px;
   font-size: 15px;
-  box-sizing: border-box;
 }
 
 .select{
@@ -146,7 +210,7 @@
   height: 52px;
   border-radius: 16px;
   border: 1px solid #222;
-  background: #050505;
+  background: var(--bg-dark);
   color: white;
   padding: 0 18px;
   font-size: 15px;
@@ -207,7 +271,7 @@
 }
 
 .description{
-  color: #d1d5db;
+  color: var(--muted);
   margin-bottom: 20px;
 }
 
@@ -218,7 +282,7 @@
 
 /* Comments / list items */
 .comment{
-  background: #050505;
+  background: var(--bg-dark);
   border: 1px solid #151515;
   border-radius: 18px;
   padding: 16px;
@@ -284,7 +348,7 @@
 .commentInput{
   flex: 1;
   height: 52px;
-  background: #050505;
+  background: var(--bg-dark);
   border: 1px solid #1e1e1e;
   border-radius: 14px;
   color: white;
@@ -297,7 +361,7 @@
   right: 24px;
   bottom: 24px;
   width: 280px;
-  background: #0b0b0b;
+  background: var(--bg-darker);
   border: 1px solid #1f1f1f;
   border-radius: 18px;
   padding: 18px;
@@ -323,7 +387,7 @@
 .loginBox{
   width: 100%;
   max-width: 460px;
-  background: #0b0b0b;
+  background: var(--bg-darker);
   border: 1px solid #1d1d1d;
   border-radius: 22px;
   padding: 34px;
@@ -350,7 +414,7 @@
   height: 56px;
   border-radius: 16px;
   border: 1px solid #1f1f1f;
-  background: #050505;
+  background: var(--bg-dark);
   color: white;
   padding: 0 16px;
 }
@@ -367,7 +431,7 @@
   color: white;
 }
 
-/* Dashboard specific */
+/* Dashboard specific (if you keep a dashboard container) */
 .dashboard-container{
   color: white;
 }
@@ -392,7 +456,7 @@
   display: inline-block;
   padding: 12px 18px;
   border-radius: 999px;
-  background: #050505;
+  background: var(--bg-dark);
   border: 1px solid #2a2a2a;
   color: var(--yellow);
   font-weight: 600;
@@ -409,7 +473,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #0b0b0b;
+  background: var(--bg-darker);
   border: 1px solid #1f1f1f;
   border-radius: 14px;
   padding: 10px 20px;
@@ -471,6 +535,10 @@
 @media (max-width: 520px){
   .nav{
     gap: 10px;
+  }
+
+  .menuGrid{
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
 
   .navBtn{
