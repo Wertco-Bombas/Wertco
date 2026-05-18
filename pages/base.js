@@ -3,20 +3,17 @@ import { supabase } from '../lib/supabase';
 import imageCompression from 'browser-image-compression';
 
 export default function Base() {
-  const [categorias, setCategorias] = useState([]);
   const [topicos, setTopicos] = useState([]);
   const [comentarios, setComentarios] = useState({});
   const [novoComentario, setNovoComentario] = useState({});
-  const [imagem, setImagem] = useState(null);
+  const [imagem, setImagem] = useState({});
 
-  // Carregar categorias e tópicos (com categoria associada)
+  // Carregar tópicos já com categoria associada
   useEffect(() => {
     async function carregarDados() {
-      const { data: cats } = await supabase.from('categorias').select('*');
       const { data: tops } = await supabase
         .from('topicos')
-        .select('id, titulo, conteudo, categoria_id, categorias(nome)');
-      setCategorias(cats || []);
+        .select('id, titulo, conteudo, categoria_id, categorias(nome), imagem_url');
       setTopicos(tops || []);
     }
     carregarDados();
@@ -42,9 +39,7 @@ export default function Base() {
       .from('comentarios')
       .insert({ conteudo, topico_id: topicoId });
 
-    if (error) {
-      alert(error.message);
-    } else {
+    if (!error) {
       setNovoComentario(prev => ({ ...prev, [topicoId]: '' }));
       carregarComentarios(topicoId);
     }
@@ -60,9 +55,7 @@ export default function Base() {
         .from('imagens') // bucket chamado "imagens"
         .upload(`topico-${topicoId}-${Date.now()}.jpg`, compressedFile);
 
-      if (error) {
-        alert(error.message);
-      } else {
+      if (!error) {
         const url = supabase.storage.from('imagens').getPublicUrl(data.path).data.publicUrl;
         await supabase.from('topicos').update({ imagem_url: url }).eq('id', topicoId);
         alert('Imagem enviada com sucesso!');
@@ -72,27 +65,9 @@ export default function Base() {
     }
   }
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    window.location.href = '/';
-  }
-
   return (
     <div className="base-container">
       <h1>Base de Conhecimento</h1>
-
-      <input
-        type="text"
-        placeholder="Pesquisar títulos, descrições, categorias, comentários..."
-        className="search-bar"
-      />
-
-      <div className="actions">
-        <button onClick={() => window.location.href='/nova-categoria'}>+ Nova Categoria</button>
-        <button onClick={() => window.location.href='/novo-topico'}>+ Novo Tópico</button>
-        <button onClick={() => window.location.href='/excluir-categoria'}>- Excluir Categoria</button>
-        <button onClick={() => window.location.href='/excluir-topico'}>- Excluir Tópico</button>
-      </div>
 
       <h2>Tópicos</h2>
       <div className="topicos-list">
@@ -108,9 +83,16 @@ export default function Base() {
             )}
 
             {/* Upload de imagem */}
-            <input type="file" accept="image/*" onChange={(e) => setImagem(e.target.files[0])} />
-            <button onClick={() => uploadImagem(imagem, top.id)}>Enviar Imagem</button>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) =>
+                setImagem(prev => ({ ...prev, [top.id]: e.target.files[0] }))
+              }
+            />
+            <button onClick={() => uploadImagem(imagem[top.id], top.id)}>Enviar Imagem</button>
 
+            {/* Comentários */}
             <div className="comentarios">
               <h4>Comentários</h4>
               <button onClick={() => carregarComentarios(top.id)}>Carregar comentários</button>
@@ -132,11 +114,6 @@ export default function Base() {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="navigation">
-        <button onClick={() => window.location.href='/dashboard'}>Voltar ao Dashboard</button>
-        <button onClick={handleLogout}>Sair</button>
       </div>
     </div>
   );
