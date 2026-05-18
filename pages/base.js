@@ -1,47 +1,33 @@
 import { supabase } from '../lib/supabase';
 
 export default function Base() {
-  async function addCategoria() {
-    const { error } = await supabase.from('categorias').insert({ nome: 'Nova Categoria' });
-    if (error) alert(error.message);
-    else alert('Categoria criada!');
-  }
-
-  async function addTopico() {
-    const { error } = await supabase.from('topicos').insert({ titulo: 'Novo Tópico' });
-    if (error) alert(error.message);
-    else alert('Tópico criado!');
-  }
-
-  async function deleteCategoria() {
-    const { error } = await supabase.from('categorias').delete().eq('id', 1); // exemplo
-    if (error) alert(error.message);
-    else alert('Categoria excluída!');
-  }
-
-  async function deleteTopico() {
-    const { error } = await supabase.from('topicos').delete().eq('id', 1); // exemplo
-    if (error) alert(error.message);
-    else alert('Tópico excluído!');
-  }
-
+  // Função de logout (presente em todas as páginas)
   async function handleLogout() {
     await supabase.auth.signOut();
-    window.location.href = '/';
+    window.location.href = '/'; // volta para tela de login
   }
 
   return (
     <div className="base-container">
       <h1>Base de Conhecimento</h1>
+
+      {/* Barra de busca */}
       <input type="text" placeholder="Buscar..." className="search-bar" />
+
+      {/* Botões de ações */}
       <div className="actions">
-        <button onClick={addCategoria}>+ Nova Categoria</button>
-        <button onClick={addTopico}>+ Novo Tópico</button>
-        <button onClick={deleteCategoria}>- Excluir Categoria</button>
-        <button onClick={deleteTopico}>- Excluir Tópico</button>
+        {/* Agora cada botão abre uma nova página com formulário */}
+        <button onClick={() => window.location.href='/nova-categoria'}>+ Nova Categoria</button>
+        <button onClick={() => window.location.href='/novo-topico'}>+ Novo Tópico</button>
+        <button onClick={() => window.location.href='/excluir-categoria'}>- Excluir Categoria</button>
+        <button onClick={() => window.location.href='/excluir-topico'}>- Excluir Tópico</button>
       </div>
-      <button onClick={() => window.location.href='/dashboard'}>Voltar ao Dashboard</button>
-      <button onClick={handleLogout}>Sair</button>
+
+      {/* Navegação */}
+      <div className="navigation">
+        <button onClick={() => window.location.href='/dashboard'}>Voltar ao Dashboard</button>
+        <button onClick={handleLogout}>Sair</button>
+      </div>
     </div>
   );
 }
