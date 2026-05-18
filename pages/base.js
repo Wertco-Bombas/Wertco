@@ -11,10 +11,10 @@ export default function Base() {
   // Carregar tópicos já com categoria associada
   useEffect(() => {
     async function carregarDados() {
-      const { data: tops } = await supabase
+      const { data: tops, error } = await supabase
         .from('topicos')
         .select('id, titulo, conteudo, categoria_id, categorias(nome), imagem_url');
-      setTopicos(tops || []);
+      if (!error) setTopicos(tops || []);
     }
     carregarDados();
   }, []);
@@ -47,6 +47,7 @@ export default function Base() {
 
   // Upload e compressão de imagem
   async function uploadImagem(file, topicoId) {
+    if (!file) return;
     try {
       const options = { maxSizeMB: 1, maxWidthOrHeight: 800, useWebWorker: true };
       const compressedFile = await imageCompression(file, options);
@@ -59,6 +60,11 @@ export default function Base() {
         const url = supabase.storage.from('imagens').getPublicUrl(data.path).data.publicUrl;
         await supabase.from('topicos').update({ imagem_url: url }).eq('id', topicoId);
         alert('Imagem enviada com sucesso!');
+        // Atualiza lista de tópicos para mostrar imagem
+        const { data: tops } = await supabase
+          .from('topicos')
+          .select('id, titulo, conteudo, categoria_id, categorias(nome), imagem_url');
+        setTopicos(tops || []);
       }
     } catch (err) {
       alert('Erro ao comprimir/enviar imagem: ' + err.message);
@@ -73,24 +79,37 @@ export default function Base() {
       <div className="topicos-list">
         {topicos.map(top => (
           <div key={top.id} className="topico-card">
-            <h3>{top.titulo}</h3>
+            <div className="topico-header">
+              <h3>{top.titulo}</h3>
+              <span className="categoria-tag">
+                {top.categorias?.nome || 'Sem categoria'}
+              </span>
+            </div>
+
             {top.conteudo && <p>{top.conteudo}</p>}
-            <p><strong>Categoria:</strong> {top.categorias?.nome || 'Sem categoria'}</p>
 
             {/* Mostrar imagem se existir */}
             {top.imagem_url && (
-              <img src={top.imagem_url} alt="Imagem do tópico" style={{ maxWidth: '200px' }} />
+              <img
+                src={top.imagem_url}
+                alt="Imagem do tópico"
+                style={{ maxWidth: '200px', marginTop: '10px' }}
+              />
             )}
 
             {/* Upload de imagem */}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) =>
-                setImagem(prev => ({ ...prev, [top.id]: e.target.files[0] }))
-              }
-            />
-            <button onClick={() => uploadImagem(imagem[top.id], top.id)}>Enviar Imagem</button>
+            <div className="upload-imagem">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                  setImagem(prev => ({ ...prev, [top.id]: e.target.files[0] }))
+                }
+              />
+              <button onClick={() => uploadImagem(imagem[top.id], top.id)}>
+                Enviar Imagem
+              </button>
+            </div>
 
             {/* Comentários */}
             <div className="comentarios">
