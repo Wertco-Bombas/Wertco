@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import './base.css';
+import '../styles/base.css';
 
 export default function Base() {
   const [categorias, setCategorias] = useState([]);
