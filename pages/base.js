@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase';
 export default function Base() {
   const [categorias, setCategorias] = useState([]);
   const [topicos, setTopicos] = useState([]);
-  const [comentario, setComentario] = useState('');
+  const [comentarios, setComentarios] = useState({});
+  const [novoComentario, setNovoComentario] = useState('');
 
   useEffect(() => {
     async function carregarDados() {
@@ -19,11 +20,11 @@ export default function Base() {
   async function salvarComentario(topicoId) {
     const { error } = await supabase
       .from('comentarios')
-      .insert({ conteudo: comentario, topico_id: topicoId });
+      .insert({ conteudo: novoComentario, topico_id: topicoId });
     if (error) alert(error.message);
     else {
       alert('Comentário adicionado!');
-      setComentario('');
+      setNovoComentario('');
     }
   }
 
@@ -55,12 +56,12 @@ export default function Base() {
         {topicos.map(top => (
           <li key={top.id}>
             <strong>{top.titulo}</strong>
-            <p>{top.conteudo}</p>
+            {top.conteudo && <p>{top.conteudo}</p>}
             <input 
               type="text" 
               placeholder="Comentar..." 
-              value={comentario} 
-              onChange={(e) => setComentario(e.target.value)} 
+              value={novoComentario} 
+              onChange={(e) => setNovoComentario(e.target.value)} 
             />
             <button onClick={() => salvarComentario(top.id)}>Enviar Comentário</button>
           </li>
