@@ -16,47 +16,67 @@ export default function Users() {
 
     setLoading(true);
 
-    // 1. Criar usuário no Auth
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) {
-      setLoading(false);
-      alert("Erro ao criar usuário: " + error.message);
-      return;
-    }
-
-    const user = data.user;
-
-    if (!user) {
-      setLoading(false);
-      alert("Usuário não retornado pelo Auth");
-      return;
-    }
-
-    // 2. Criar perfil com role
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .insert({
-        id: user.id,
-        email: email,
-        role: role,
+    try {
+      // 1. Criar usuário no Auth
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
       });
 
-    setLoading(false);
+      if (error) {
+        setLoading(false);
+        alert("Erro ao criar usuário: " + error.message);
+        return;
+      }
 
-    if (profileError) {
-      alert("Usuário criado, mas erro no perfil: " + profileError.message);
-      return;
+      // 2. Pegar usuário de forma segura
+      const user = data?.user;
+
+      if (!user) {
+        setLoading(false);
+        alert(
+          "Usuário criado no Auth, mas não retornado. Verifique email confirmation no Supabase."
+        );
+        return;
+      }
+
+      // 3. Evitar duplicação de profile
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .insert({
+            id: user.id,
+            email: email,
+            role: role,
+          });
+
+        if (profileError) {
+          setLoading(false);
+          alert(
+            "Usuário criado, mas erro ao criar perfil: " +
+              profileError.message
+          );
+          return;
+        }
+      }
+
+      setLoading(false);
+
+      alert("Usuário criado com sucesso!");
+
+      setEmail("");
+      setPassword("");
+      setRole("user");
+    } catch (err) {
+      setLoading(false);
+      alert("Erro inesperado: " + err.message);
     }
-
-    alert("Usuário criado com sucesso!");
-
-    setEmail("");
-    setPassword("");
-    setRole("user");
   }
 
   return (
