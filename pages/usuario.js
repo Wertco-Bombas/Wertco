@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import Layout from "../components/Layout";
 
-export default function Usuarios() {
+export default function Usuario() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("user");
