@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import Layout from "../components/Layout";
 
@@ -7,6 +7,18 @@ export default function Usuario() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("user");
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState([]);
+
+  // Buscar usuários já cadastrados
+  useEffect(() => {
+    async function fetchUsers() {
+      const { data, error } = await supabase.from("profiles").select("id, email, role");
+      if (!error) {
+        setUsers(data);
+      }
+    }
+    fetchUsers();
+  }, []);
 
   async function createUser() {
     if (!email || !password) {
@@ -29,18 +41,15 @@ export default function Usuario() {
         return;
       }
 
-      // 2. Pegar usuário de forma segura
       const user = data?.user;
 
       if (!user) {
         setLoading(false);
-        alert(
-          "Usuário criado no Auth, mas não retornado. Verifique email confirmation no Supabase."
-        );
+        alert("Usuário criado no Auth, mas não retornado. Verifique email confirmation no Supabase.");
         return;
       }
 
-      // 3. Evitar duplicação de profile
+      // 2. Evitar duplicação de profile
       const { data: existingProfile } = await supabase
         .from("profiles")
         .select("id")
@@ -58,21 +67,22 @@ export default function Usuario() {
 
         if (profileError) {
           setLoading(false);
-          alert(
-            "Usuário criado, mas erro ao criar perfil: " +
-              profileError.message
-          );
+          alert("Usuário criado, mas erro ao criar perfil: " + profileError.message);
           return;
         }
       }
 
       setLoading(false);
-
       alert("Usuário criado com sucesso!");
 
       setEmail("");
       setPassword("");
       setRole("user");
+
+      // Atualizar lista
+      const { data: updatedUsers } = await supabase.from("profiles").select("id, email, role");
+      setUsers(updatedUsers);
+
     } catch (err) {
       setLoading(false);
       alert("Erro inesperado: " + err.message);
@@ -81,42 +91,59 @@ export default function Usuario() {
 
   return (
     <Layout>
-      <div className="card">
-        <h2>👤 Criar Usuário</h2>
+      <div className="container">
+        <div className="card">
+          <h2>👤 Criar Usuário</h2>
 
-        <div className="searchBar">
-          <input
-            className="input"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          <div className="searchBar">
+            <input
+              className="input"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
 
-          <input
-            className="input"
-            placeholder="Senha"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+            <input
+              className="input"
+              placeholder="Senha"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-          <select
-            className="select"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-          >
-            <option value="user">User</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="admin">Admin</option>
-          </select>
+            <select
+              className="select"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            >
+              <option value="user">User</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="admin">Admin</option>
+            </select>
 
-          <button
-            className="btn btnYellow"
-            onClick={createUser}
-            disabled={loading}
-          >
-            {loading ? "Criando..." : "Criar usuário"}
-          </button>
+            <button
+              className="btn btnYellow"
+              onClick={createUser}
+              disabled={loading}
+            >
+              {loading ? "Criando..." : "Criar usuário"}
+            </button>
+          </div>
+        </div>
+
+        <div className="card">
+          <h2>📋 Usuários cadastrados</h2>
+          {users.length === 0 ? (
+            <p className="description">Nenhum usuário encontrado.</p>
+          ) : (
+            <ul>
+              {users.map((u) => (
+                <li key={u.id} className="comment">
+                  <strong>{u.email}</strong> — <span>{u.role}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </Layout>
