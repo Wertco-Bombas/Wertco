@@ -15,25 +15,20 @@ export default function Dashboard() {
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
-            <div className="userInfo">
-              Administrador <span className="admin">(Admin)</span>
-            </div>
-
-            <button onClick={() => router.push("/login")}>
+            <button className="navBtn" onClick={() => router.push("/login")}>
               Sair
             </button>
           </div>
         </div>
 
-        {/* NAVIGATION PROFISSIONAL */}
+        {/* NAVIGATION MENU */}
         <div className="nav">
-
           <button className="navBtn" onClick={() => router.push("/base")}>
             Base de conhecimento
           </button>
 
-          <button className="navBtn" onClick={() => router.push("/usuarios")}>
-            Usuários
+          <button className="navBtn" onClick={() => router.push("/usuario")}>
+            Usuário
           </button>
 
           <button className="navBtn" onClick={() => router.push("/treinamento")}>
@@ -44,12 +39,15 @@ export default function Dashboard() {
             Auditoria
           </button>
 
+          <button className="navBtn" onClick={() => router.push("/atendimento")}>
+            Atendimento
+          </button>
         </div>
 
-        {/* DASHBOARD HOME */}
+        {/* MENU HOME */}
         <div className="card">
-          <h2>Bem-vindo ao sistema</h2>
-          <p>Selecione uma área no menu acima para começar.</p>
+          <h2>Menu</h2>
+          <p>Selecione uma área acima para começar.</p>
         </div>
 
       </div>
