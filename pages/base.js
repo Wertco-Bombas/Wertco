@@ -14,7 +14,13 @@ export default function Base() {
       const { data: tops, error } = await supabase
         .from('topicos')
         .select('id, titulo, conteudo, categoria_id, categorias(nome), imagem_url');
-      if (!error) setTopicos(tops || []);
+      if (!error) {
+        setTopicos(tops || []);
+        // já carrega comentários de todos
+        for (const t of tops || []) {
+          carregarComentarios(t.id);
+        }
+      }
     }
     carregarDados();
   }, []);
@@ -53,14 +59,12 @@ export default function Base() {
       const compressedFile = await imageCompression(file, options);
 
       const { data, error } = await supabase.storage
-        .from('imagens') // bucket chamado "imagens"
+        .from('imagens')
         .upload(`topico-${topicoId}-${Date.now()}.jpg`, compressedFile);
 
       if (!error) {
         const url = supabase.storage.from('imagens').getPublicUrl(data.path).data.publicUrl;
         await supabase.from('topicos').update({ imagem_url: url }).eq('id', topicoId);
-        alert('Imagem enviada com sucesso!');
-        // Atualiza lista de tópicos para mostrar imagem
         const { data: tops } = await supabase
           .from('topicos')
           .select('id, titulo, conteudo, categoria_id, categorias(nome), imagem_url');
@@ -75,15 +79,28 @@ export default function Base() {
     <div className="base-container">
       <h1>Base de Conhecimento</h1>
 
+      {/* Barra de pesquisa */}
+      <input
+        type="text"
+        placeholder="Pesquisar títulos, descrições, categorias, comentários..."
+        className="search-bar"
+      />
+
+      {/* Botões de ação */}
+      <div className="actions">
+        <button onClick={() => window.location.href='/nova-categoria'}>+ Nova Categoria</button>
+        <button onClick={() => window.location.href='/novo-topico'}>+ Novo Tópico</button>
+        <button onClick={() => window.location.href='/excluir-categoria'}>- Excluir Categoria</button>
+        <button onClick={() => window.location.href='/excluir-topico'}>- Excluir Tópico</button>
+      </div>
+
       <h2>Tópicos</h2>
       <div className="topicos-list">
         {topicos.map(top => (
           <div key={top.id} className="topico-card">
             <div className="topico-header">
-              <h3>{top.titulo}</h3>
-              <span className="categoria-tag">
-                {top.categorias?.nome || 'Sem categoria'}
-              </span>
+              <h3 className="topico-titulo">{top.titulo}</h3>
+              <span className="categoria-tag">{top.categorias?.nome || 'Sem categoria'}</span>
             </div>
 
             {top.conteudo && <p>{top.conteudo}</p>}
@@ -97,24 +114,23 @@ export default function Base() {
               />
             )}
 
-            {/* Upload de imagem */}
-            <div className="upload-imagem">
+            {/* Upload de imagem com ícone de clipe */}
+            <label className="clip-upload">
+              📎
               <input
                 type="file"
                 accept="image/*"
+                style={{ display: 'none' }}
                 onChange={(e) =>
                   setImagem(prev => ({ ...prev, [top.id]: e.target.files[0] }))
                 }
               />
-              <button onClick={() => uploadImagem(imagem[top.id], top.id)}>
-                Enviar Imagem
-              </button>
-            </div>
+            </label>
+            <button onClick={() => uploadImagem(imagem[top.id], top.id)}>Enviar</button>
 
-            {/* Comentários */}
+            {/* Comentários (sem botão carregar) */}
             <div className="comentarios">
               <h4>Comentários</h4>
-              <button onClick={() => carregarComentarios(top.id)}>Carregar comentários</button>
               <ul>
                 {(comentarios[top.id] || []).map(com => (
                   <li key={com.id}>{com.conteudo}</li>
