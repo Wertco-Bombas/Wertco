@@ -3,13 +3,12 @@ import { supabase } from '../lib/supabase';
 
 export default function NovaCategoria() {
   const [nome, setNome] = useState('');
-  const [descricao, setDescricao] = useState('');
 
   async function salvarCategoria(e) {
     e.preventDefault();
     const { error } = await supabase
       .from('categorias')
-      .insert({ nome, descricao });
+      .insert({ nome });
     if (error) {
       alert(error.message);
     } else {
@@ -27,11 +26,6 @@ export default function NovaCategoria() {
           placeholder="Nome da categoria" 
           value={nome} 
           onChange={(e) => setNome(e.target.value)} 
-        />
-        <textarea 
-          placeholder="Descrição" 
-          value={descricao} 
-          onChange={(e) => setDescricao(e.target.value)} 
         />
         <button type="submit">Salvar</button>
       </form>
