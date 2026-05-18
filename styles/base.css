@@ -6,7 +6,7 @@
   font-family: Arial, sans-serif;
 }
 
-h1, h2, h3, h4 {
+h1, h2 {
   color: #ffd700; /* amarelo dourado */
 }
 
@@ -19,40 +19,28 @@ h1, h2, h3, h4 {
   color: #fff;
 }
 
+.actions {
+  margin-bottom: 20px;
+}
+
 .actions button,
-.navigation button,
-.categoria-card button,
-.topico-card button {
+.navigation button {
   background-color: #ffd700;
   color: #111;
   border: none;
-  padding: 8px 12px;
+  padding: 10px 15px;
   margin: 5px;
   cursor: pointer;
   font-weight: bold;
+  border-radius: 4px;
 }
 
 .actions button:hover,
-.navigation button:hover,
-.categoria-card button:hover,
-.topico-card button:hover {
+.navigation button:hover {
   background-color: #ffcc00;
 }
 
-.layout-grid {
-  display: flex;
-  gap: 20px;
-}
-
-.topicos-col {
-  flex: 2;
-}
-
-.categorias-col {
-  flex: 1;
-}
-
-.topico-card, .categoria-card {
+.topico-card {
   background: #1a1a1a;
   border: 1px solid #333;
   padding: 15px;
@@ -60,12 +48,31 @@ h1, h2, h3, h4 {
   border-radius: 6px;
 }
 
+.topico-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topico-titulo {
+  color: #ffd700; /* amarelo para destacar o título */
+  font-size: 1.2em;
+}
+
+.categoria-tag {
+  background: #ffd700;
+  color: #111;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
 .comentarios {
-  margin-top: 10px;
+  margin-top: 15px;
 }
 
 .comentarios input {
-  width: 80%;
+  width: 70%;
   padding: 8px;
   margin-right: 5px;
   background: #222;
@@ -80,6 +87,7 @@ h1, h2, h3, h4 {
   padding: 8px 12px;
   cursor: pointer;
   font-weight: bold;
+  border-radius: 4px;
 }
 
 .comentarios button:hover {
@@ -96,4 +104,16 @@ ul li {
   padding: 6px;
   margin-bottom: 5px;
   border-radius: 4px;
+}
+
+/* Ícone de clipe para upload */
+.clip-upload {
+  cursor: pointer;
+  font-size: 20px;
+  margin-right: 10px;
+  color: #ffd700;
+}
+
+.clip-upload:hover {
+  color: #ffcc00;
 }
