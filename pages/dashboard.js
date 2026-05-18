@@ -1,56 +1,17 @@
-import { useRouter } from "next/router";
+import Link from 'next/link';
+import { supabase } from '../lib/supabase';
 
 export default function Dashboard() {
-  const router = useRouter();
-
   return (
-    <div className="page">
-      <div className="container">
-
-        {/* TOPBAR */}
-        <div className="topbar">
-          <div className="logo">
-            <div className="logoBox">◉</div>
-            <div className="logoText">Don</div>
-          </div>
-
-          <div style={{ display: "flex", gap: 10 }}>
-            <button className="navBtn" onClick={() => router.push("/login")}>
-              Sair
-            </button>
-          </div>
-        </div>
-
-        {/* NAVIGATION MENU */}
-        <div className="nav">
-          <button className="navBtn" onClick={() => router.push("/base")}>
-            Base de conhecimento
-          </button>
-
-          <button className="navBtn" onClick={() => router.push("/usuario")}>
-            Usuário
-          </button>
-
-          <button className="navBtn" onClick={() => router.push("/treinamento")}>
-            Treinamento
-          </button>
-
-          <button className="navBtn" onClick={() => router.push("/auditoria")}>
-            Auditoria
-          </button>
-
-          <button className="navBtn" onClick={() => router.push("/atendimento")}>
-            Atendimento
-          </button>
-        </div>
-
-        {/* MENU HOME */}
-        <div className="card">
-          <h2>Menu</h2>
-          <p>Selecione uma área acima para começar.</p>
-        </div>
-
-      </div>
+    <div className="dashboard-container">
+      <h1>Dashboard</h1>
+      <ul>
+        <li><Link href="/base">Base de Conhecimento</Link></li>
+        <li><Link href="/treinamento">Treinamento</Link></li>
+        <li><Link href="/auditoria">Auditoria</Link></li>
+        <li><Link href="/usuarios">Usuários</Link></li>
+      </ul>
+      <button onClick={() => supabase.auth.signOut()}>Sair</button>
     </div>
   );
 }
