@@ -11,10 +11,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { conteudo, topico_id, usuario_id, usuario_nome } = req.body;
+  const { conteudo, topico_id, usuario_id, usuario_email, imagem_base64 } = req.body;
 
-  if (!conteudo || !topico_id) {
-    return res.status(400).json({ error: 'Conteúdo e tópico são obrigatórios' });
+  if (!conteudo && !imagem_base64) {
+    return res.status(400).json({ error: 'Conteúdo ou imagem são obrigatórios' });
+  }
+  if (!topico_id) {
+    return res.status(400).json({ error: 'Tópico é obrigatório' });
   }
 
   // Verifica se o tópico existe
@@ -32,14 +35,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Tópico com id ${topico_id} não existe` });
   }
 
-  // Insere o comentário vinculado ao tópico válido
+  // Insere o comentário com email do usuário e imagem (base64)
   const { error } = await supabase
     .from('comentarios')
     .insert({
       conteudo,
       topico_id,
       usuario_id: usuario_id || null,
-      usuario_nome: usuario_nome || 'Anônimo' // novo campo
+      usuario_email: usuario_email || null,
+      imagem_base64: imagem_base64 || null
     });
 
   if (error) {
