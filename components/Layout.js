@@ -38,6 +38,8 @@ export default function Layout({ children }) {
   async function handleLogout() {
     try {
       await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Erro ao deslogar:', err);
     } finally {
       window.location.href = '/login';
     }
@@ -45,14 +47,12 @@ export default function Layout({ children }) {
 
   return (
     <>
-      <header className="topbar">
+      <header className="topbar" aria-hidden>
         <div className="logo">
-          {/* Removido o "W" separado — apenas Wertco */}
           <div className="logoText">Wertco</div>
         </div>
       </header>
 
-      {/* userInfo fixo no topo direito (aparece em todas as páginas) */}
       <div className="userInfo" role="region" aria-label="Informações do usuário">
         {userEmail ? (
           <div className="userEmail" title={userEmail}>{userEmail}</div>
