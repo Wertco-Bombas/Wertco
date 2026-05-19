@@ -16,6 +16,7 @@ export default async function handler(req, res) {
   }
 
   const { conteudo, topico_id, usuario_id } = req.body;
+
   if (!conteudo || !topico_id) {
     return res.status(400).json({ error: 'Conteúdo e tópico são obrigatórios' });
   }
