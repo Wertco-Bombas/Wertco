@@ -1,3 +1,5 @@
+/* styles/style.css (substitua o arquivo inteiro por este conteúdo ou mescle as partes relevantes) */
+
 :root{
   --yellow: #ffd600;
   --yellow-strong: #f5c400;
@@ -194,7 +196,41 @@ body{
   font-weight:600;
 }
 
-/* Buttons utility */
+/* Buttons base */
+.btn{
+  height:44px;
+  border:none;
+  border-radius:10px;
+  padding:0 16px;
+  cursor:pointer;
+  font-weight:700;
+  transition:.12s;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Yellow primary button */
+.btnYellow{
+  background:var(--yellow);
+  color:#000;
+  border: 1px solid rgba(0,0,0,0.12);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+
+.btnYellow:hover{
+  transform: translateY(-2px);
+}
+
+/* Outline / danger style for delete actions (keeps contrast on dark bg) */
+.btnDangerOutline{
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: none;
+}
+
+/* Logout button */
 .logoutBtn{
   border:none;
   border-radius:999px;
@@ -210,6 +246,16 @@ body{
 .logoutBtn:hover{
   background:#000;
   transform:translateY(-1px);
+}
+
+/* KB specific small styles */
+.topico-card .topico-titulo{
+  font-size:18px;
+  font-weight:700;
+}
+
+.categoria-tag{
+  font-size:13px;
 }
 
 /* Responsive adjustments */
