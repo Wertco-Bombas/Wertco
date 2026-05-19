@@ -1,5 +1,5 @@
 // pages/novo-usuario.js
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/router';
 
@@ -10,9 +10,30 @@ export default function NovoUsuario() {
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    // se quiser, podemos restringir opções de role com base no usuário logado
-  }, []);
+  async function tryInsertProfile(userId, emailValue, roleValue) {
+    // Tenta inserir em 'users' primeiro, se falhar tenta 'profiles'
+    try {
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert({ id: userId, email: emailValue, role: roleValue });
+
+      if (!insertError) return { ok: true, where: 'users' };
+
+      // Se erro indicar coluna ausente ou tabela ausente, tenta profiles
+      console.warn('Insert users falhou:', insertError.message);
+
+      const { error: insertProfilesError } = await supabase
+        .from('profiles')
+        .insert({ id: userId, email: emailValue, role: roleValue });
+
+      if (!insertProfilesError) return { ok: true, where: 'profiles' };
+
+      // Se também falhar, retorna erro
+      return { ok: false, error: insertProfilesError || insertError };
+    } catch (err) {
+      return { ok: false, error: err };
+    }
+  }
 
   async function handleCriar(e) {
     e.preventDefault();
@@ -20,6 +41,7 @@ export default function NovoUsuario() {
 
     setSaving(true);
 
+    // 1) cria usuário no Auth
     const { data, error: signError } = await supabase.auth.signUp({
       email: email.trim(),
       password
@@ -30,24 +52,28 @@ export default function NovoUsuario() {
       return alert('Erro ao criar usuário: ' + signError.message);
     }
 
-    try {
-      const userId = data?.user?.id || null;
-      const { error: insertError } = await supabase.from('users').insert({
-        id: userId,
-        email: email.trim(),
-        role: role || 'usuario'
-      });
+    const userId = data?.user?.id || null;
 
+    if (!userId) {
       setSaving(false);
-      if (insertError) {
-        alert('Usuário criado no Auth, mas erro ao salvar perfil: ' + insertError.message);
-      } else {
-        router.push('/usuario');
-      }
-    } catch (err) {
-      setSaving(false);
-      console.error(err);
-      alert('Erro ao salvar usuário: ' + err.message);
+      return alert('Usuário criado no Auth, mas não foi retornado user id.');
+    }
+
+    // 2) tenta inserir perfil em tabelas comuns (users -> profiles)
+    const result = await tryInsertProfile(userId, email.trim(), role);
+
+    setSaving(false);
+
+    if (result.ok) {
+      router.push('/usuario');
+    } else {
+      // Mensagem detalhada para ajudar debug
+      console.error('Erro ao salvar perfil:', result.error);
+      alert(
+        'Usuário criado no Auth, mas erro ao salvar perfil: ' +
+        (result.error?.message || JSON.stringify(result.error)) +
+        '\n\nVerifique o schema do banco: existe a tabela "users" ou "profiles" com coluna "email" e "role"?'
+      );
     }
   }
 
