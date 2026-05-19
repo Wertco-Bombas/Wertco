@@ -20,6 +20,9 @@ export default function Usuario() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
+      // Log para verificar se o token está sendo obtido
+      console.log('Token enviado:', token);
+
       const resp = await fetch('/api/admin/list-users', {
         method: 'GET',
         headers: {
@@ -27,7 +30,16 @@ export default function Usuario() {
         }
       });
 
-      const json = await resp.json();
+      let json;
+      try {
+        json = await resp.json();
+      } catch {
+        const text = await resp.text();
+        console.error('Resposta não é JSON:', text);
+        alert('Erro inesperado: ' + text);
+        return;
+      }
+
       if (!resp.ok) {
         console.error('list-users error', json);
         alert('Erro ao listar usuários: ' + (json?.error || resp.statusText));
@@ -55,6 +67,9 @@ export default function Usuario() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
+      // Log para verificar token também na exclusão
+      console.log('Token enviado (delete):', token);
+
       const resp = await fetch('/api/admin/delete-user', {
         method: 'DELETE',
         headers: {
@@ -64,15 +79,15 @@ export default function Usuario() {
         body: JSON.stringify({ userId })
       });
 
-     let json;
-try {
-  json = await resp.json();
-} catch {
-  const text = await resp.text();
-  console.error('Resposta não é JSON:', text);
-  alert('Erro inesperado: ' + text);
-  return;
-}
+      let json;
+      try {
+        json = await resp.json();
+      } catch {
+        const text = await resp.text();
+        console.error('Resposta não é JSON:', text);
+        alert('Erro inesperado: ' + text);
+        return;
+      }
 
       if (!resp.ok) {
         console.error('delete-user error', json);
