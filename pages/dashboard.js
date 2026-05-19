@@ -7,6 +7,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     let mounted = true;
+
     async function loadSession() {
       try {
         const { data } = await supabase.auth.getSession();
@@ -18,12 +19,15 @@ export default function Dashboard() {
         console.error('Erro ao obter sessão:', err);
       }
     }
+
     loadSession();
-    // opcional: escutar mudanças de sessão
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
       if (session?.user?.email) setUserEmail(session.user.email);
       else setUserEmail('');
     });
+
     return () => {
       mounted = false;
       listener?.subscription?.unsubscribe?.();
@@ -31,30 +35,37 @@ export default function Dashboard() {
   }, []);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    window.location.href = '/login';
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      window.location.href = '/login';
+    }
   }
 
   return (
     <div className="page">
       <div className="container">
 
-        {/* Topbar */}
-        <div className="topbar">
+        {/* Topbar (logo only) */}
+        <div className="topbar" aria-hidden>
           <div className="logo">
             <div className="logoBox">W</div>
             <div className="logoText">Wertco</div>
           </div>
         </div>
 
-        {/* User info + logout fixed top-right (uses .userInfo from CSS) */}
-        <div className="userInfo" aria-hidden={false}>
-          {userEmail && <div className="userEmail" title={userEmail}>{userEmail}</div>}
+        {/* Fixed user info + logout at top-right */}
+        <div className="userInfo" role="region" aria-label="Informações do usuário">
+          {userEmail ? (
+            <div className="userEmail" title={userEmail}>{userEmail}</div>
+          ) : (
+            <div className="userEmail">Convidado</div>
+          )}
           <button className="logoutBtn" onClick={handleLogout}>Sair</button>
         </div>
 
-        {/* Menu buttons (excludes Dashboard) */}
-        <div className="menuGrid" role="navigation" aria-label="Menu principal">
+        {/* Five yellow buttons (Dashboard itself excluded) */}
+        <nav className="menuGrid" role="navigation" aria-label="Menu principal">
           <Link href="/base" className="menuBtn" aria-label="Base de Conhecimento">
             <div className="icon">B</div>
             <div>Base de Conhecimento</div>
@@ -74,14 +85,17 @@ export default function Dashboard() {
             <div className="icon">U</div>
             <div>Usuários</div>
           </Link>
-        </div>
 
-        {/* Conteúdo principal */}
-        <div className="card">
-          <h1 className="topicTitle">Bem-vindo ao Dashboard!</h1>
-          <p className="description">Clique em um dos botões acima para acessar a seção desejada.</p>
-        </div>
+          <Link href="/configuracoes" className="menuBtn" aria-label="Configurações">
+            <div className="icon">⚙</div>
+            <div>Configurações</div>
+          </Link>
+        </nav>
 
+        {/* Empty content area (welcome text removed as requested) */}
+        <div className="card" aria-hidden>
+          {/* Intentionally left blank */}
+        </div>
       </div>
     </div>
   );
