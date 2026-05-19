@@ -1,7 +1,5 @@
-await supabase
-  .from('comentarios')
-  .insert({
-    conteudo: comentario,
-    topico_id: topicoId,
-    user_id: user?.id // 👈 precisa existir essa coluna
-  });
+await supabase.from('comentarios').insert({
+  conteudo,
+  topico_id,
+  usuario_id: user.id // 👈 usa o nome correto da coluna
+});
