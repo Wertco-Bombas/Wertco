@@ -140,7 +140,9 @@ export default function Usuario() {
                 <tbody>
                   {usuarios.map(u => (
                     <tr key={u.id} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                      <td style={{ padding: '12px' }}>{u.email}</td>
+                      <td style={{ padding: '12px' }}>
+                      {u.email || u.username || '(sem identificação)'}
+                      </td>
                       <td style={{ padding: '12px' }}>{u.role || 'usuário'}</td>
                       <td style={{ padding: '12px' }}>{u.created_at ? new Date(u.created_at).toLocaleString() : ''}</td>
                       <td style={{ padding: '12px' }}>
