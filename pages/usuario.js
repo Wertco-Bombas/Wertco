@@ -1,15 +1,17 @@
 // pages/usuario.js
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useRouter } from 'next/router';
 
 export default function Usuario() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     async function loadUsers() {
       try {
-        // Exemplo: buscar usuários da tabela 'users' (ajuste conforme seu schema)
+        // Ajuste conforme seu schema: aqui assumimos tabela 'users' com campos id, email, role, created_at
         const { data, error } = await supabase.from('users').select('id, email, role, created_at');
         if (!error) setUsuarios(data || []);
         else console.error(error);
@@ -38,7 +40,7 @@ export default function Usuario() {
               className="search-bar"
               style={{ maxWidth: 420 }}
             />
-            <button className="btn btnYellow" onClick={() => window.location.href = '/novo-usuario'}>+ Novo Usuário</button>
+            <button className="btn btnYellow" onClick={() => router.push('/novo-usuario')}>+ Novo Usuário</button>
           </div>
 
           <div className="userTable" style={{ marginTop: 18 }}>
@@ -61,10 +63,10 @@ export default function Usuario() {
                     <tr key={u.id} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
                       <td style={{ padding: '12px' }}>{u.email}</td>
                       <td style={{ padding: '12px' }}>{u.role || 'usuário'}</td>
-                      <td style={{ padding: '12px' }}>{new Date(u.created_at).toLocaleString()}</td>
+                      <td style={{ padding: '12px' }}>{u.created_at ? new Date(u.created_at).toLocaleString() : ''}</td>
                       <td style={{ padding: '12px' }}>
-                        <button className="btn" style={{ marginRight: 8 }} onClick={() => window.location.href = `/usuario/${u.id}`}>Ver</button>
-                        <button className="btn btnDangerOutline" onClick={() => alert('Implementar edição/exclusão')}>Excluir</button>
+                        <button className="btn" style={{ marginRight: 8 }} onClick={() => router.push(`/usuario/${u.id}`)}>Ver</button>
+                        <button className="btn btnDangerOutline" onClick={() => alert('Implementar exclusão de usuário com confirmação')}>Excluir</button>
                       </td>
                     </tr>
                   ))}
