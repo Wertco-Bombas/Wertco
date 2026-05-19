@@ -1,7 +1,7 @@
 // pages/base.js
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import Layout from '../components/Layout'; // garante que Layout envolva a página
+import Layout from '../components/Layout';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -25,7 +25,13 @@ export default function Base() {
   async function carregarComentarios() {
     const { data, error } = await supabase
       .from('comentarios')
-      .select('*')
+      .select(`
+        id,
+        conteudo,
+        created_at,
+        usuario_id,
+        profiles ( nome )
+      `) // traz o nome do usuário da tabela profiles
       .eq('topico_id', topicoId)
       .order('created_at', { ascending: false });
 
@@ -86,14 +92,11 @@ export default function Base() {
         <h2 className="text-xl font-semibold mb-4">Comentários</h2>
         <ul className="space-y-3">
           {comentarios.map((c) => (
-            <li
-              key={c.id}
-              className="border-b border-gray-700 pb-2"
-            >
-              <strong>{c.usuario_id || 'Anônimo'}:</strong> {c.conteudo}
+            <li key={c.id} className="border-b border-gray-700 pb-2">
+              <strong>{c.profiles?.nome || 'Anônimo'}:</strong> {c.conteudo}
               <br />
               <small className="text-gray-400">
-                {new Date(c.created_at).toLocaleString()}
+                {new Date(c.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
               </small>
             </li>
           ))}
