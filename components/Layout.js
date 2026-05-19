@@ -2,10 +2,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 export default function Layout({ children }) {
   const [userEmail, setUserEmail] = useState('');
   const [userId, setUserId] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     let mounted = true;
@@ -52,6 +54,10 @@ export default function Layout({ children }) {
     }
   }
 
+  function goToDashboard() {
+    router.push('/dashboard');
+  }
+
   return (
     <>
       <header className="topbar" aria-hidden>
@@ -66,6 +72,18 @@ export default function Layout({ children }) {
         ) : (
           <div className="userEmail">Convidado</div>
         )}
+
+        {/* Menu button: volta ao dashboard */}
+        <button
+          className="btn"
+          onClick={goToDashboard}
+          aria-label="Menu - Voltar ao Dashboard"
+          title="Dashboard"
+          style={{ marginRight: 8 }}
+        >
+          Menu
+        </button>
+
         <button className="logoutBtn" onClick={handleLogout}>Sair</button>
       </div>
 
