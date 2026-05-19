@@ -11,18 +11,40 @@ const supabase = createClient(
 
 export default function Base() {
   const [topicos, setTopicos] = useState([]);
-  const [comentarios, setComentarios] = useState({});
-  const [novoComentario, setNovoComentario] = useState({});
-  const [user, setUser] = useState(null);
+  const [comentarios, setComentarios] = useState({}); // { [topicoId]: [comentarios] }
+  const [novoComentario, setNovoComentario] = useState({}); // texto por topico
+  const [novoComentarioFile, setNovoComentarioFile] = useState({}); // file por topico
+  const [user, setUser] = useState(null); // { id, email, role, nome }
   const [search, setSearch] = useState('');
-  const [editing, setEditing] = useState({}); // { [comentarioId]: true }
-  const [editContent, setEditContent] = useState({}); // { [comentarioId]: '...' }
+  const [editing, setEditing] = useState({}); // { [comentarioId]: true/false }
+  const [editContent, setEditContent] = useState({}); // { [comentarioId]: texto }
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data?.user || null);
-    });
+    async function init() {
+      const { data } = await supabase.auth.getUser();
+      const currentUser = data?.user || null;
+      if (currentUser) {
+        // busca role e nome no profiles
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, role, nome, email')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+        setUser({
+          id: currentUser.id,
+          email: currentUser.email,
+          role: profile?.role || 'user',
+          nome: profile?.nome || null
+        });
+      } else {
+        setUser(null);
+      }
+    }
+
+    init();
     carregarTopicos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function carregarTopicos() {
@@ -33,6 +55,7 @@ export default function Base() {
 
     if (!error && data) {
       setTopicos(data);
+      // carrega comentários de cada tópico
       data.forEach((t) => carregarComentarios(t.id));
     }
   }
@@ -46,36 +69,6 @@ export default function Base() {
 
     if (!error) {
       setComentarios((prev) => ({ ...prev, [topicoId]: data || [] }));
-    }
-  }
-
-  async function salvarComentario(topicoId, file) {
-    const conteudo = novoComentario[topicoId];
-    if (!conteudo && !file) return;
-
-    let imagem_base64 = null;
-    if (file) {
-      imagem_base64 = await compressAndConvertToBase64(file);
-    }
-
-    const resp = await fetch('/api/comentarios/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        conteudo,
-        topico_id: topicoId,
-        usuario_id: user?.id || null,
-        usuario_email: user?.email || 'Anônimo',
-        imagem_base64
-      })
-    });
-
-    const json = await resp.json();
-    if (!resp.ok) {
-      alert('Erro ao salvar comentário: ' + (json.error || resp.statusText));
-    } else {
-      setNovoComentario((prev) => ({ ...prev, [topicoId]: '' }));
-      carregarComentarios(topicoId);
     }
   }
 
@@ -99,8 +92,46 @@ export default function Base() {
     });
   }
 
+  async function salvarComentario(topicoId, file) {
+    const conteudo = (novoComentario[topicoId] || '').trim();
+    if (!conteudo && !file) return;
+
+    let imagem_base64 = null;
+    if (file) {
+      imagem_base64 = await compressAndConvertToBase64(file);
+    }
+
+    const resp = await fetch('/api/comentarios/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conteudo: conteudo || null,
+        topico_id: topicoId,
+        usuario_id: user?.id || null,
+        usuario_email: user?.email || null,
+        imagem_base64
+      })
+    });
+
+    const json = await resp.json();
+    if (!resp.ok) {
+      alert('Erro ao salvar comentário: ' + (json.error || resp.statusText));
+    } else {
+      setNovoComentario((prev) => ({ ...prev, [topicoId]: '' }));
+      setNovoComentarioFile((prev) => ({ ...prev, [topicoId]: null }));
+      carregarComentarios(topicoId);
+    }
+  }
+
+  function canManageComment(c) {
+    if (!user) return false;
+    if (c.usuario_id && user.id && c.usuario_id === user.id) return true;
+    if (user.role === 'admin' || user.role === 'supervisor') return true;
+    return false;
+  }
+
   async function handleEditSave(comentario) {
-    const novoConteudo = editContent[comentario.id];
+    const novoConteudo = (editContent[comentario.id] || '').trim();
     if (!novoConteudo) return;
 
     const resp = await fetch('/api/comentarios/update', {
@@ -235,8 +266,8 @@ export default function Base() {
                           )}
                         </div>
 
-                        {/* Ações: editar/excluir apenas para autor */}
-                        {user?.id && c.usuario_id === user.id && (
+                        {/* Ações: editar/excluir para autor ou admin/supervisor */}
+                        {canManageComment(c) && (
                           <div className="flex flex-col gap-2 ml-4">
                             {!editing[c.id] ? (
                               <>
@@ -291,7 +322,7 @@ export default function Base() {
                       setNovoComentario((prev) => ({ ...prev, [t.id]: e.target.value }))
                     }
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') salvarComentario(t.id);
+                      if (e.key === 'Enter') salvarComentario(t.id, novoComentarioFile[t.id]);
                     }}
                     className="flex-1 border rounded px-3 py-2 bg-gray-800 text-white"
                   />
@@ -301,9 +332,8 @@ export default function Base() {
                     id={`file-${t.id}`}
                     className="hidden"
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      // store temporarily in novoComentarioFile
-                      setNovoComentario((prev) => ({ ...prev, [`file-${t.id}`]: file }));
+                      const file = e.target.files?.[0] || null;
+                      setNovoComentarioFile((prev) => ({ ...prev, [t.id]: file }));
                     }}
                   />
                   <label
@@ -313,7 +343,7 @@ export default function Base() {
                     Anexar
                   </label>
                   <button
-                    onClick={() => salvarComentario(t.id, novoComentario[`file-${t.id}`])}
+                    onClick={() => salvarComentario(t.id, novoComentarioFile[t.id])}
                     className="bg-yellow-400 hover:bg-yellow-500 text-black px-4 py-2 rounded font-bold"
                   >
                     Enviar
