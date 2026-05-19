@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 export default function Layout({ children }) {
   const [userEmail, setUserEmail] = useState('');
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -13,8 +14,9 @@ export default function Layout({ children }) {
       try {
         const { data } = await supabase.auth.getSession();
         const session = data?.session;
-        if (mounted && session?.user?.email) {
-          setUserEmail(session.user.email);
+        if (mounted && session?.user) {
+          setUserEmail(session.user.email || '');
+          setUserId(session.user.id || null);
         }
       } catch (err) {
         console.error('Erro ao obter sessão:', err);
@@ -25,8 +27,13 @@ export default function Layout({ children }) {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
-      if (session?.user?.email) setUserEmail(session.user.email);
-      else setUserEmail('');
+      if (session?.user) {
+        setUserEmail(session.user.email || '');
+        setUserId(session.user.id || null);
+      } else {
+        setUserEmail('');
+        setUserId(null);
+      }
     });
 
     return () => {
