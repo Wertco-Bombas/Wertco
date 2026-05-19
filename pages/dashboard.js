@@ -5,8 +5,6 @@ export default function Dashboard() {
   return (
     <div className="page">
       <div className="container">
-
-        {/* Central area: botões centralizados */}
         <div className="centerArea">
           <nav className="menuGrid" role="navigation" aria-label="Menu principal">
             <Link href="/base" className="menuBtn" aria-label="Base de Conhecimento">
@@ -31,7 +29,6 @@ export default function Dashboard() {
           </nav>
         </div>
 
-        {/* Área de conteúdo vazia (mantida por compatibilidade) */}
         <div className="card" aria-hidden>
           {/* Intencionalmente vazio */}
         </div>
