@@ -64,7 +64,7 @@ export default function Dashboard() {
           <button className="logoutBtn" onClick={handleLogout}>Sair</button>
         </div>
 
-        {/* Five yellow buttons (Dashboard itself excluded) */}
+        {/* Five yellow buttons that navigate to the pages */}
         <nav className="menuGrid" role="navigation" aria-label="Menu principal">
           <Link href="/base" className="menuBtn" aria-label="Base de Conhecimento">
             <div className="icon">B</div>
@@ -92,7 +92,7 @@ export default function Dashboard() {
           </Link>
         </nav>
 
-        {/* Empty content area (welcome text removed as requested) */}
+        {/* Empty content area (welcome text removed) */}
         <div className="card" aria-hidden>
           {/* Intentionally left blank */}
         </div>
