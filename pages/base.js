@@ -1,5 +1,7 @@
+// pages/base.js
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import Layout from '../components/Layout'; // garante que Layout envolva a página
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,14 +13,12 @@ export default function Base() {
   const [novoComentario, setNovoComentario] = useState({});
   const [user, setUser] = useState(null);
 
-  const topicoId = 1; // ajuste conforme sua lógica
+  const topicoId = 11; // ajuste conforme o ID real do tópico
 
   useEffect(() => {
-    // pega usuário logado
     supabase.auth.getUser().then(({ data }) => {
       setUser(data?.user || null);
     });
-
     carregarComentarios();
   }, []);
 
@@ -56,48 +56,49 @@ export default function Base() {
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Base de Conhecimento</h1>
+    <Layout>
+      <div className="p-6">
+        <h1 className="text-3xl font-bold mb-6">Base de Conhecimento</h1>
 
-      <div
-        className="comentario-input"
-        style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}
-      >
-        <input
-          type="text"
-          placeholder="Adicionar comentário..."
-          value={novoComentario[topicoId] || ''}
-          onChange={(e) =>
-            setNovoComentario((prev) => ({ ...prev, [topicoId]: e.target.value }))
-          }
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              salvarComentario(topicoId);
+        <div className="flex gap-2 mb-6">
+          <input
+            type="text"
+            placeholder="Adicionar comentário..."
+            value={novoComentario[topicoId] || ''}
+            onChange={(e) =>
+              setNovoComentario((prev) => ({ ...prev, [topicoId]: e.target.value }))
             }
-          }}
-          style={{
-            flex: 1,
-            height: 44,
-            borderRadius: 10,
-            border: '1px solid #222',
-            padding: '0 12px',
-            background: 'var(--bg-dark)',
-            color: '#fff'
-          }}
-        />
-        <button onClick={() => salvarComentario(topicoId)}>Enviar</button>
-      </div>
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                salvarComentario(topicoId);
+              }
+            }}
+            className="flex-1 border rounded px-3 py-2 bg-gray-800 text-white"
+          />
+          <button
+            onClick={() => salvarComentario(topicoId)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
+            Enviar
+          </button>
+        </div>
 
-      <h2 style={{ marginTop: 20 }}>Comentários</h2>
-      <ul>
-        {comentarios.map((c) => (
-          <li key={c.id}>
-            <strong>{c.usuario_id || 'Anônimo'}:</strong> {c.conteudo}
-            <br />
-            <small>{new Date(c.created_at).toLocaleString()}</small>
-          </li>
-        ))}
-      </ul>
-    </div>
+        <h2 className="text-xl font-semibold mb-4">Comentários</h2>
+        <ul className="space-y-3">
+          {comentarios.map((c) => (
+            <li
+              key={c.id}
+              className="border-b border-gray-700 pb-2"
+            >
+              <strong>{c.usuario_id || 'Anônimo'}:</strong> {c.conteudo}
+              <br />
+              <small className="text-gray-400">
+                {new Date(c.created_at).toLocaleString()}
+              </small>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Layout>
   );
 }
