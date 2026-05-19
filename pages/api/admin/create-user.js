@@ -13,15 +13,19 @@ const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  // Opcional: proteção simples por header secreto (melhor que nada em dev)
+  // const SECRET = process.env.ADMIN_API_SECRET;
+  // if (!SECRET || req.headers['x-admin-secret'] !== SECRET) return res.status(401).json({ error: 'Unauthorized' });
+
   const { email, password, role = 'usuario' } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
   try {
-    // Cria usuário via Admin API (service role)
+    // Cria usuário via Admin API e marca como confirmado para evitar envio de e-mail
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true // marca como confirmado para evitar fluxo de confirmação por e-mail
+      email_confirm: true
     });
 
     if (authError) {
@@ -34,12 +38,11 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'User created but no id returned' });
     }
 
-    // Insere perfil na tabela 'profiles' (ou 'users' se for o seu caso)
-    // Ajuste o nome da tabela e colunas conforme seu schema
+    // Insere perfil na tabela 'profiles' (ajuste para 'users' se for o seu caso)
     const profilePayload = { id: userId, email, role };
 
     const { error: insertError } = await supabaseAdmin
-      .from('profiles') // troque para 'users' se for o seu caso
+      .from('profiles') // troque para 'users' se necessário
       .insert(profilePayload);
 
     if (insertError) {
