@@ -1,8 +1,8 @@
 // pages/base.js
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 import imageCompression from 'browser-image-compression';
+import { useRouter } from 'next/router';
 
 export default function Base() {
   const router = useRouter();
@@ -10,31 +10,37 @@ export default function Base() {
   const [topicos, setTopicos] = useState([]);
   const [comentarios, setComentarios] = useState({});
   const [novoComentario, setNovoComentario] = useState({});
-  const [imagem, setImagem] = useState({});
+  const [editandoComentario, setEditandoComentario] = useState({}); // { [comentarioId]: texto }
+  const [sessionUser, setSessionUser] = useState(null);
 
   useEffect(() => {
-    async function carregarDados() {
-      const { data: tops, error } = await supabase
-        .from('topicos')
-        .select('id, titulo, conteudo, categoria_id, categorias(nome), imagem_url');
-
-      if (!error) {
-        setTopicos(tops || []);
-        for (const t of tops || []) {
-          carregarComentarios(t.id);
-        }
-      } else {
-        console.error('Erro ao carregar tópicos:', error);
-      }
+    async function init() {
+      const { data } = await supabase.auth.getSession();
+      setSessionUser(data?.session?.user || null);
+      await carregarDados();
     }
-
-    carregarDados();
+    init();
   }, []);
+
+  async function carregarDados() {
+    const { data: tops, error } = await supabase
+      .from('topicos')
+      .select('id, titulo, conteudo, categoria_id, categorias(nome), imagem_url');
+
+    if (!error) {
+      setTopicos(tops || []);
+      for (const t of tops || []) {
+        carregarComentarios(t.id);
+      }
+    } else {
+      console.error('Erro ao carregar tópicos:', error);
+    }
+  }
 
   async function carregarComentarios(topicoId) {
     const { data, error } = await supabase
       .from('comentarios')
-      .select('*')
+      .select('id, conteudo, created_at, user_id')
       .eq('topico_id', topicoId)
       .order('id', { ascending: true });
 
@@ -49,15 +55,52 @@ export default function Base() {
     const conteudo = (novoComentario[topicoId] || '').trim();
     if (!conteudo) return;
 
+    const userId = sessionUser?.id || null;
+
     const { error } = await supabase
       .from('comentarios')
-      .insert({ conteudo, topico_id: topicoId });
+      .insert({ conteudo, topico_id: topicoId, user_id: userId });
 
     if (!error) {
       setNovoComentario(prev => ({ ...prev, [topicoId]: '' }));
       carregarComentarios(topicoId);
     } else {
       alert('Erro ao salvar comentário: ' + error.message);
+    }
+  }
+
+  async function editarComentario(comentarioId, topicoId) {
+    const novoTexto = (editandoComentario[comentarioId] || '').trim();
+    if (!novoTexto) return alert('Comentário vazio');
+
+    const { error } = await supabase
+      .from('comentarios')
+      .update({ conteudo: novoTexto })
+      .eq('id', comentarioId);
+
+    if (!error) {
+      setEditandoComentario(prev => {
+        const copy = { ...prev };
+        delete copy[comentarioId];
+        return copy;
+      });
+      carregarComentarios(topicoId);
+    } else {
+      alert('Erro ao editar comentário: ' + error.message);
+    }
+  }
+
+  async function excluirComentario(comentarioId, topicoId) {
+    if (!confirm('Confirma exclusão deste comentário?')) return;
+    const { error } = await supabase
+      .from('comentarios')
+      .delete()
+      .eq('id', comentarioId);
+
+    if (!error) {
+      carregarComentarios(topicoId);
+    } else {
+      alert('Erro ao excluir comentário: ' + error.message);
     }
   }
 
@@ -82,11 +125,7 @@ export default function Base() {
         if (updateError) {
           alert('Erro ao atualizar tópico com imagem: ' + updateError.message);
         } else {
-          // recarrega tópicos
-          const { data: tops } = await supabase
-            .from('topicos')
-            .select('id, titulo, conteudo, categoria_id, categorias(nome), imagem_url');
-          setTopicos(tops || []);
+          await carregarDados();
         }
       } else {
         alert('Erro ao enviar imagem: ' + (error?.message || 'Erro desconhecido'));
@@ -138,13 +177,7 @@ export default function Base() {
               - Excluir Categoria
             </button>
 
-            <button
-              className="btn btnDangerOutline"
-              onClick={() => router.push('/excluir-topico')}
-              aria-label="Excluir Tópico"
-            >
-              - Excluir Tópico
-            </button>
+            {/* Removida a opção de Excluir Tópico conforme solicitado */}
           </div>
         </div>
 
@@ -174,7 +207,40 @@ export default function Base() {
                 <h4 style={{ marginBottom: 8, color: 'var(--yellow)' }}>Comentários</h4>
                 <ul style={{ margin: 0, paddingLeft: 16 }}>
                   {(comentarios[top.id] || []).map(com => (
-                    <li key={com.id} style={{ marginBottom: 6 }}>{com.conteudo}</li>
+                    <li key={com.id} style={{ marginBottom: 8 }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                          {editandoComentario[com.id] !== undefined ? (
+                            <>
+                              <input
+                                value={editandoComentario[com.id]}
+                                onChange={(e) => setEditandoComentario(prev => ({ ...prev, [com.id]: e.target.value }))}
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #222', background: 'var(--bg-dark)', color: '#fff' }}
+                              />
+                              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                                <button className="btn btnYellow" onClick={() => editarComentario(com.id, top.id)}>Salvar</button>
+                                <button className="btn" onClick={() => setEditandoComentario(prev => { const c = { ...prev }; delete c[com.id]; return c; })}>Cancelar</button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div style={{ color: '#fff' }}>{com.conteudo}</div>
+                              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
+                                {com.created_at ? new Date(com.created_at).toLocaleString() : ''}
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* ações: editar/excluir apenas se for autor do comentário */}
+                        {sessionUser && com.user_id === sessionUser.id && editandoComentario[com.id] === undefined && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <button className="smallBtn approve" onClick={() => setEditandoComentario(prev => ({ ...prev, [com.id]: com.conteudo }))}>Editar</button>
+                            <button className="smallBtn reject" onClick={() => excluirComentario(com.id, top.id)}>Excluir</button>
+                          </div>
+                        )}
+                      </div>
+                    </li>
                   ))}
                 </ul>
 
