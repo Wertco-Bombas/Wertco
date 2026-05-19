@@ -25,13 +25,7 @@ export default function Base() {
   async function carregarComentarios() {
     const { data, error } = await supabase
       .from('comentarios')
-      .select(`
-        id,
-        conteudo,
-        created_at,
-        usuario_id,
-        profiles ( nome )
-      `) // traz o nome do usuário da tabela profiles
+      .select('*') // agora buscamos direto, pois já gravamos usuario_nome
       .eq('topico_id', topicoId)
       .order('created_at', { ascending: false });
 
@@ -48,7 +42,8 @@ export default function Base() {
       body: JSON.stringify({
         conteudo,
         topico_id: topicoId,
-        usuario_id: user?.id || null
+        usuario_id: user?.id || null,
+        usuario_nome: user?.email || 'Anônimo' // salva o nome/email
       })
     });
 
@@ -93,7 +88,7 @@ export default function Base() {
         <ul className="space-y-3">
           {comentarios.map((c) => (
             <li key={c.id} className="border-b border-gray-700 pb-2">
-              <strong>{c.profiles?.nome || 'Anônimo'}:</strong> {c.conteudo}
+              <strong>{c.usuario_nome || 'Anônimo'}:</strong> {c.conteudo}
               <br />
               <small className="text-gray-400">
                 {new Date(c.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
