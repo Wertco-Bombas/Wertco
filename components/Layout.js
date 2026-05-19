@@ -9,13 +9,6 @@ export default function Layout({ children }) {
   const [userId, setUserId] = useState(null);
   const router = useRouter();
 
-  {router.pathname !== '/login' && (
-  <>
-    <button onClick={goToDashboard}>Menu</button>
-    <button onClick={handleLogout}>Sair</button>
-  </>
-)}
-
   useEffect(() => {
     let mounted = true;
 
@@ -67,7 +60,6 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      {/* Barra superior */}
       <header className="bg-gray-800 shadow-md">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -95,30 +87,31 @@ export default function Layout({ children }) {
             )}
           </div>
 
-          {/* Informações do usuário */}
-          <div className="flex items-center gap-3">
-            {userEmail ? (
-              <span className="text-sm text-gray-300">{userEmail}</span>
-            ) : (
-              <span className="text-sm text-gray-400">Convidado</span>
-            )}
-            <button
-              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded"
-              onClick={goToDashboard}
-            >
-              Menu
-            </button>
-            <button
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded"
-              onClick={handleLogout}
-            >
-              Sair
-            </button>
-          </div>
+          {/* Informações do usuário e botões só aparecem fora da tela de login */}
+          {router.pathname !== '/login' && (
+            <div className="flex items-center gap-3">
+              {userEmail ? (
+                <span className="text-sm text-gray-300">{userEmail}</span>
+              ) : (
+                <span className="text-sm text-gray-400">Convidado</span>
+              )}
+              <button
+                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded"
+                onClick={goToDashboard}
+              >
+                Menu
+              </button>
+              <button
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded"
+                onClick={handleLogout}
+              >
+                Sair
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Conteúdo principal */}
       <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
     </div>
   );
