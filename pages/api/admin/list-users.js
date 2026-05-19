@@ -39,6 +39,7 @@ export default async function handler(req, res) {
     if (listError) throw listError;
 
     const users = (listData?.users || []).filter(u => !!u.email_confirmed_at);
+
     return res.status(200).json({ ok: true, users });
   } catch (err) {
     console.error(err);
