@@ -1,9 +1,8 @@
-// pages/novo-usuario.js
-import dynamic from 'next/dynamic';
-
-// Carrega o componente apenas no cliente (sem SSR)
-const NovoUsuarioPage = dynamic(() => import('../components/NovoUsuario'), {
-  ssr: false
-});
-
-export default NovoUsuarioPage;
+<select
+  value={role}
+  onChange={(e) => setRole(e.target.value)}
+>
+  <option value="usuario">Usuário</option>
+  <option value="supervisor">Supervisor</option>
+  <option value="admin">Admin</option>
+</select>
