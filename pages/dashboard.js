@@ -12,7 +12,6 @@ export default function Dashboard() {
       try {
         const { data } = await supabase.auth.getSession();
         const session = data?.session;
-
         if (mounted && session?.user?.email) {
           setUserEmail(session.user.email);
         }
@@ -23,17 +22,11 @@ export default function Dashboard() {
 
     loadSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!mounted) return;
-
-        if (session?.user?.email) {
-          setUserEmail(session.user.email);
-        } else {
-          setUserEmail('');
-        }
-      }
-    );
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      if (session?.user?.email) setUserEmail(session.user.email);
+      else setUserEmail('');
+    });
 
     return () => {
       mounted = false;
@@ -53,88 +46,55 @@ export default function Dashboard() {
     <div className="page">
       <div className="container">
 
-        {/* Topbar */}
-        <div className="topbar">
+        {/* Topbar (logo only) */}
+        <div className="topbar" aria-hidden>
           <div className="logo">
             <div className="logoBox">W</div>
             <div className="logoText">Wertco</div>
           </div>
-
-          {/* Logout no canto superior direito */}
-          <div
-            className="userInfo"
-            role="region"
-            aria-label="Informações do usuário"
-          >
-            {userEmail ? (
-              <div className="userEmail" title={userEmail}>
-                {userEmail}
-              </div>
-            ) : (
-              <div className="userEmail">Convidado</div>
-            )}
-
-            <button className="logoutBtn" onClick={handleLogout}>
-              Sair
-            </button>
-          </div>
         </div>
 
-        {/* Menu principal */}
-        <nav
-          className="menuGrid"
-          role="navigation"
-          aria-label="Menu principal"
-        >
-          <Link
-            href="/base"
-            className="menuBtn"
-            aria-label="Base de Conhecimento"
-          >
+        {/* Fixed user info + logout at top-right */}
+        <div className="userInfo" role="region" aria-label="Informações do usuário">
+          {userEmail ? (
+            <div className="userEmail" title={userEmail}>{userEmail}</div>
+          ) : (
+            <div className="userEmail">Convidado</div>
+          )}
+          <button className="logoutBtn" onClick={handleLogout}>Sair</button>
+        </div>
+
+        {/* Five yellow buttons that navigate to the pages */}
+        <nav className="menuGrid" role="navigation" aria-label="Menu principal">
+          <Link href="/base" className="menuBtn" aria-label="Base de Conhecimento">
             <div className="icon">B</div>
             <div>Base de Conhecimento</div>
           </Link>
 
-          <Link
-            href="/treinamento"
-            className="menuBtn"
-            aria-label="Treinamento"
-          >
+          <Link href="/treinamento" className="menuBtn" aria-label="Treinamento">
             <div className="icon">T</div>
             <div>Treinamento</div>
           </Link>
 
-          <Link
-            href="/auditoria"
-            className="menuBtn"
-            aria-label="Auditoria"
-          >
+          <Link href="/auditoria" className="menuBtn" aria-label="Auditoria">
             <div className="icon">A</div>
             <div>Auditoria</div>
           </Link>
 
-          <Link
-            href="/usuarios"
-            className="menuBtn"
-            aria-label="Usuários"
-          >
+          <Link href="/usuario" className="menuBtn" aria-label="Usuários">
             <div className="icon">U</div>
             <div>Usuários</div>
           </Link>
 
-          <Link
-            href="/atendimento"
-            className="menuBtn"
-            aria-label="Atendimento"
-          >
-            <div className="icon">C</div>
-            <div>Atendimento</div>
+          <Link href="/configuracoes" className="menuBtn" aria-label="Configurações">
+            <div className="icon">⚙</div>
+            <div>Configurações</div>
           </Link>
         </nav>
 
-        {/* Área vazia */}
+        {/* Empty content area (welcome text removed) */}
         <div className="card" aria-hidden>
-          {/* Intencionalmente vazio */}
+          {/* Intentionally left blank */}
         </div>
       </div>
     </div>
