@@ -59,35 +59,56 @@ export default function Layout({ children }) {
   }
 
   return (
-    <>
-      <header className="topbar" aria-hidden>
-        <div className="logo">
-          <div className="logoText">Wertco</div>
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Barra superior */}
+      <header className="bg-gray-800 shadow-md">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="text-2xl font-bold">Wertco</div>
+            <nav className="flex gap-3">
+              <Link href="/novo-topico">
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded">
+                  + Novo Tópico
+                </button>
+              </Link>
+              <Link href="/nova-categoria">
+                <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded">
+                  + Nova Categoria
+                </button>
+              </Link>
+              <Link href="/excluir-categoria">
+                <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded">
+                  Excluir Categoria
+                </button>
+              </Link>
+            </nav>
+          </div>
+
+          {/* Informações do usuário */}
+          <div className="flex items-center gap-3">
+            {userEmail ? (
+              <span className="text-sm text-gray-300">{userEmail}</span>
+            ) : (
+              <span className="text-sm text-gray-400">Convidado</span>
+            )}
+            <button
+              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded"
+              onClick={goToDashboard}
+            >
+              Menu
+            </button>
+            <button
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded"
+              onClick={handleLogout}
+            >
+              Sair
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="userInfo" role="region" aria-label="Informações do usuário">
-        {userEmail ? (
-          <div className="userEmail" title={userEmail}>{userEmail}</div>
-        ) : (
-          <div className="userEmail">Convidado</div>
-        )}
-
-        {/* Menu button: volta ao dashboard */}
-        <button
-          className="btn"
-          onClick={goToDashboard}
-          aria-label="Menu - Voltar ao Dashboard"
-          title="Dashboard"
-          style={{ marginRight: 8 }}
-        >
-          Menu
-        </button>
-
-        <button className="logoutBtn" onClick={handleLogout}>Sair</button>
-      </div>
-
-      <main>{children}</main>
-    </>
+      {/* Conteúdo principal */}
+      <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
+    </div>
   );
 }
