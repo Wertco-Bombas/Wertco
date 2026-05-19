@@ -47,7 +47,7 @@ body{
   margin-bottom:24px;
 }
 
-/* Logo */
+/* Logo (only text Wertco) */
 .logo{
   display:flex;
   align-items:center;
@@ -55,17 +55,7 @@ body{
 }
 
 .logoBox{
-  width:54px;
-  height:54px;
-  border-radius:14px;
-  background:var(--bg-darker);
-  border:1px solid #1f1f1f;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:var(--yellow);
-  font-size:22px;
-  font-weight:700;
+  display:none; /* escondido conforme solicitado */
 }
 
 .logoText{
@@ -102,22 +92,22 @@ body{
   white-space:nowrap;
 }
 
-/* Navigation area (kept for small nav usage) */
-.nav{
+/* Central area to vertically center content */
+.centerArea{
   display:flex;
-  gap:16px;
-  flex-wrap:wrap;
-  margin-bottom:24px;
-  justify-content:flex-start;
+  align-items:center;
+  justify-content:center;
+  min-height: calc(100vh - 120px);
+  padding:20px 0;
 }
 
 /* Grid dashboard: five equal columns, responsive */
 .menuGrid{
+  width: min(1100px, 100%);
   display:grid;
   grid-template-columns: repeat(5, 1fr);
   gap:16px;
-  margin-top:20px;
-  margin-bottom:24px;
+  margin:0 auto;
 }
 
 /* Menu buttons (yellow) */
@@ -140,20 +130,6 @@ body{
   cursor:pointer;
   user-select:none;
   text-align:center;
-}
-
-/* Icon inside button */
-.menuBtn .icon{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:42px;
-  height:42px;
-  border-radius:10px;
-  background:rgba(0,0,0,0.08);
-  color:#000;
-  font-weight:800;
-  font-size:18px;
 }
 
 /* Hover / focus */
@@ -181,7 +157,7 @@ body{
   box-shadow:0 0 0 1px rgba(255,214,0,.03), 0 0 30px rgba(255,214,0,.03);
 }
 
-/* Buttons utility */
+/* Logout button */
 .logoutBtn{
   border:none;
   border-radius:999px;
