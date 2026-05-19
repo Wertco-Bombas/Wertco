@@ -65,23 +65,27 @@ export default function Layout({ children }) {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="text-2xl font-bold">Wertco</div>
-            <nav className="flex gap-3">
-              <Link href="/novo-topico">
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded">
-                  + Novo Tópico
-                </button>
-              </Link>
-              <Link href="/nova-categoria">
-                <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded">
-                  + Nova Categoria
-                </button>
-              </Link>
-              <Link href="/excluir-categoria">
-                <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded">
-                  Excluir Categoria
-                </button>
-              </Link>
-            </nav>
+
+            {/* Botões só aparecem na rota /base */}
+            {router.pathname === '/base' && (
+              <nav className="flex gap-3">
+                <Link href="/novo-topico">
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded">
+                    + Novo Tópico
+                  </button>
+                </Link>
+                <Link href="/nova-categoria">
+                  <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded">
+                    + Nova Categoria
+                  </button>
+                </Link>
+                <Link href="/excluir-categoria">
+                  <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded">
+                    Excluir Categoria
+                  </button>
+                </Link>
+              </nav>
+            )}
           </div>
 
           {/* Informações do usuário */}
