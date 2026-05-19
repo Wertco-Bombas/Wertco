@@ -11,14 +11,23 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-  const { email, password, role = 'usuario' } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+  // Pega os dados do body
+  const { email, password, role } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password required' });
+  }
+
+  // Define papel padrão se não vier nada
+  const userRole = role || 'usuario';
 
   // Valida se o papel informado é permitido
   const validRoles = ['usuario', 'supervisor', 'admin'];
-  if (!validRoles.includes(role)) {
+  if (!validRoles.includes(userRole)) {
     return res.status(400).json({ error: `Invalid role. Must be one of: ${validRoles.join(', ')}` });
   }
 
@@ -44,8 +53,8 @@ export default async function handler(req, res) {
     const profilePayload = {
       id: userId,
       email,
-      role,
-      username: email.split('@')[0] // gera username automático a partir do email
+      role: userRole,
+      username: email.split('@')[0] // gera username automático
     };
 
     const { error: insertError } = await supabaseAdmin
@@ -59,7 +68,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: insertError.message || insertError });
     }
 
-    return res.status(200).json({ ok: true, userId, role });
+    return res.status(200).json({ ok: true, userId, role: userRole });
   } catch (err) {
     console.error('Unexpected error', err);
     return res.status(500).json({ error: err.message || err });
