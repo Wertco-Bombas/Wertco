@@ -9,6 +9,13 @@ export default function Layout({ children }) {
   const [userId, setUserId] = useState(null);
   const router = useRouter();
 
+  {router.pathname !== '/login' && (
+  <>
+    <button onClick={goToDashboard}>Menu</button>
+    <button onClick={handleLogout}>Sair</button>
+  </>
+)}
+
   useEffect(() => {
     let mounted = true;
 
