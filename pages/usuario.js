@@ -1,6 +1,12 @@
 // pages/usuario.js
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export default function Usuario() {
   const [usuarios, setUsuarios] = useState([]);
@@ -8,18 +14,19 @@ export default function Usuario() {
   const [processingId, setProcessingId] = useState(null);
   const router = useRouter();
 
-  const ADMIN_CLIENT_SECRET = process.env.NEXT_PUBLIC_ADMIN_API_SECRET_CLIENT || '';
-
   async function fetchUsers() {
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       const resp = await fetch('/api/admin/list-users', {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'x-admin-secret': ADMIN_CLIENT_SECRET
+          'Authorization': `Bearer ${token}`
         }
       });
+
       const json = await resp.json();
       if (!resp.ok) {
         console.error('list-users error', json);
@@ -45,14 +52,18 @@ export default function Usuario() {
     if (!confirm('Confirma exclusão deste usuário? Esta ação é irreversível.')) return;
     setProcessingId(userId);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       const resp = await fetch('/api/admin/delete-user', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': ADMIN_CLIENT_SECRET
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ userId })
       });
+
       const json = await resp.json();
       if (!resp.ok) {
         console.error('delete-user error', json);
