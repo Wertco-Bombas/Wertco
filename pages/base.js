@@ -25,7 +25,7 @@ export default function Base() {
   async function carregarComentarios() {
     const { data, error } = await supabase
       .from('comentarios')
-      .select('*') // agora buscamos direto, pois já gravamos usuario_nome
+      .select('*')
       .eq('topico_id', topicoId)
       .order('created_at', { ascending: false });
 
@@ -43,7 +43,7 @@ export default function Base() {
         conteudo,
         topico_id: topicoId,
         usuario_id: user?.id || null,
-        usuario_nome: user?.email || 'Anônimo' // salva o nome/email
+        usuario_nome: user?.email || 'Anônimo'
       })
     });
 
@@ -60,6 +60,13 @@ export default function Base() {
     <Layout>
       <div className="p-6">
         <h1 className="text-3xl font-bold mb-6">Base de Conhecimento</h1>
+
+        {/* Botões exclusivos da página Base */}
+        <div className="flex gap-2 mb-6">
+          <button className="btn btnYellow">+ Novo Tópico</button>
+          <button className="btn btnYellow">+ Nova Categoria</button>
+          <button className="btn btnDangerOutline">Excluir Categoria</button>
+        </div>
 
         <div className="flex gap-2 mb-6">
           <input
