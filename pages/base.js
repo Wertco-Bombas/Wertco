@@ -10,7 +10,7 @@ export default function Base() {
   const [topicos, setTopicos] = useState([]);
   const [comentarios, setComentarios] = useState({});
   const [novoComentario, setNovoComentario] = useState({});
-  const [editandoComentario, setEditandoComentario] = useState({}); // { [comentarioId]: texto }
+  const [editandoComentario, setEditandoComentario] = useState({});
   const [sessionUser, setSessionUser] = useState(null);
 
   useEffect(() => {
@@ -176,8 +176,6 @@ export default function Base() {
             >
               - Excluir Categoria
             </button>
-
-            {/* Removida a opção de Excluir Tópico conforme solicitado */}
           </div>
         </div>
 
@@ -232,7 +230,6 @@ export default function Base() {
                           )}
                         </div>
 
-                        {/* ações: editar/excluir apenas se for autor do comentário */}
                         {sessionUser && com.user_id === sessionUser.id && editandoComentario[com.id] === undefined && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             <button className="smallBtn approve" onClick={() => setEditandoComentario(prev => ({ ...prev, [com.id]: com.conteudo }))}>Editar</button>
