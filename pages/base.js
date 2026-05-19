@@ -349,5 +349,16 @@ export default function Base() {
         </div>
       </div>
     </div>
+
+await fetch('/api/comentarios/create', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    conteudo: comentario,
+    topico_id: topicoId,
+    usuario_id: user.id // 👈 UUID do usuário logado
+  })
+});
+
   );
 }
