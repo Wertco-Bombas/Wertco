@@ -13,15 +13,17 @@ const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Opcional: proteção simples por header secreto (melhor que nada em dev)
-  // const SECRET = process.env.ADMIN_API_SECRET;
-  // if (!SECRET || req.headers['x-admin-secret'] !== SECRET) return res.status(401).json({ error: 'Unauthorized' });
-
   const { email, password, role = 'usuario' } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
+  // Valida se o papel informado é permitido
+  const validRoles = ['usuario', 'supervisor', 'admin'];
+  if (!validRoles.includes(role)) {
+    return res.status(400).json({ error: `Invalid role. Must be one of: ${validRoles.join(', ')}` });
+  }
+
   try {
-    // Cria usuário via Admin API e marca como confirmado para evitar envio de e-mail
+    // Cria usuário no Auth e marca como confirmado
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -38,11 +40,16 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'User created but no id returned' });
     }
 
-    // Insere perfil na tabela 'profiles' (ajuste para 'users' se for o seu caso)
-    const profilePayload = { id: userId, email, role };
+    // Insere perfil na tabela 'profiles'
+    const profilePayload = {
+      id: userId,
+      email,
+      role,
+      username: email.split('@')[0] // gera username automático a partir do email
+    };
 
     const { error: insertError } = await supabaseAdmin
-      .from('profiles') // troque para 'users' se necessário
+      .from('profiles')
       .insert(profilePayload);
 
     if (insertError) {
@@ -52,7 +59,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: insertError.message || insertError });
     }
 
-    return res.status(200).json({ ok: true, userId });
+    return res.status(200).json({ ok: true, userId, role });
   } catch (err) {
     console.error('Unexpected error', err);
     return res.status(500).json({ error: err.message || err });
