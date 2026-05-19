@@ -11,7 +11,6 @@ export default function Usuario() {
   useEffect(() => {
     async function loadUsers() {
       try {
-        // Ajuste conforme seu schema: aqui assumimos tabela 'users' com campos id, email, role, created_at
         const { data, error } = await supabase.from('users').select('id, email, role, created_at');
         if (!error) setUsuarios(data || []);
         else console.error(error);
