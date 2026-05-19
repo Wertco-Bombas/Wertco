@@ -1,3 +1,4 @@
+// pages/api/admin/list-users.js
 import { createClient } from '@supabase/supabase-js';
 import { checkAdmin } from '../../../lib/checkAdmin';
 
@@ -6,24 +7,26 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-
-const { data: { session } } = await supabase.auth.getSession();
-if (!session) {
-  alert('Você precisa estar logado como admin para acessar esta página.');
-  return;
-}
-
-
 export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   const auth = await checkAdmin(req);
-  if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
+  if (!auth.ok) {
+    return res.status(auth.status).json({ error: auth.error });
+  }
 
   try {
-    const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-    if (listError) throw listError;
+    // Busca diretamente na tabela profiles
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id, username, email, role, created_at')
+      .order('created_at', { ascending: false });
 
-    const users = (listData?.users || []).filter(u => !!u.email_confirmed_at);
-    return res.status(200).json({ ok: true, users });
+    if (error) throw error;
+
+    return res.status(200).json({ ok: true, users: data });
   } catch (err) {
     return res.status(500).json({ error: err.message || err });
   }
