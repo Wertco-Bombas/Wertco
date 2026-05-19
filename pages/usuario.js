@@ -20,8 +20,7 @@ export default function Usuario() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      // Log para verificar se o token está sendo obtido
-      console.log('Token enviado:', token);
+      console.log('Token enviado (list-users):', token);
 
       const resp = await fetch('/api/admin/list-users', {
         method: 'GET',
@@ -33,10 +32,8 @@ export default function Usuario() {
       let json;
       try {
         json = await resp.json();
-      } catch {
-        const text = await resp.text();
-        console.error('Resposta não é JSON:', text);
-        alert('Erro inesperado: ' + text);
+      } catch (err) {
+        console.error('Resposta não pôde ser convertida em JSON:', err);
         return;
       }
 
@@ -67,8 +64,7 @@ export default function Usuario() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      // Log para verificar token também na exclusão
-      console.log('Token enviado (delete):', token);
+      console.log('Token enviado (delete-user):', token);
 
       const resp = await fetch('/api/admin/delete-user', {
         method: 'DELETE',
@@ -82,10 +78,8 @@ export default function Usuario() {
       let json;
       try {
         json = await resp.json();
-      } catch {
-        const text = await resp.text();
-        console.error('Resposta não é JSON:', text);
-        alert('Erro inesperado: ' + text);
+      } catch (err) {
+        console.error('Resposta não pôde ser convertida em JSON:', err);
         return;
       }
 
