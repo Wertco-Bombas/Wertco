@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     .from('topicos')
     .select('id')
     .eq('id', topico_id)
-    .single();
+    .maybeSingle();
 
   if (topicoError) {
     return res.status(500).json({ error: topicoError.message });
