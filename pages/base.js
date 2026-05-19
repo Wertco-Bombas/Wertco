@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useUser } from '@supabase/auth-helpers-react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -10,10 +9,18 @@ const supabase = createClient(
 export default function Base() {
   const [comentarios, setComentarios] = useState([]);
   const [novoComentario, setNovoComentario] = useState({});
-  const user = useUser();
+  const [user, setUser] = useState(null);
 
-  // Exemplo: id fixo de tópico, ajuste conforme sua lógica
-  const topicoId = 1;
+  const topicoId = 1; // ajuste conforme sua lógica
+
+  useEffect(() => {
+    // pega usuário logado
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data?.user || null);
+    });
+
+    carregarComentarios();
+  }, []);
 
   async function carregarComentarios() {
     const { data, error } = await supabase
@@ -24,10 +31,6 @@ export default function Base() {
 
     if (!error) setComentarios(data);
   }
-
-  useEffect(() => {
-    carregarComentarios();
-  }, []);
 
   async function salvarComentario(topicoId) {
     const conteudo = novoComentario[topicoId];
@@ -56,7 +59,6 @@ export default function Base() {
     <div style={{ padding: 20 }}>
       <h1>Base de Conhecimento</h1>
 
-      {/* Campo de comentário */}
       <div
         className="comentario-input"
         style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}
@@ -86,7 +88,6 @@ export default function Base() {
         <button onClick={() => salvarComentario(topicoId)}>Enviar</button>
       </div>
 
-      {/* Lista de comentários */}
       <h2 style={{ marginTop: 20 }}>Comentários</h2>
       <ul>
         {comentarios.map((c) => (
