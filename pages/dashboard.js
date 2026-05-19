@@ -64,31 +64,26 @@ export default function Dashboard() {
           <button className="logoutBtn" onClick={handleLogout}>Sair</button>
         </div>
 
-        {/* Five yellow buttons that navigate to the pages */}
+        {/* Five yellow buttons that navigate to the pages (no leading letters) */}
         <nav className="menuGrid" role="navigation" aria-label="Menu principal">
           <Link href="/base" className="menuBtn" aria-label="Base de Conhecimento">
-            <div className="icon">B</div>
             <div>Base de Conhecimento</div>
           </Link>
 
           <Link href="/treinamento" className="menuBtn" aria-label="Treinamento">
-            <div className="icon">T</div>
             <div>Treinamento</div>
           </Link>
 
           <Link href="/auditoria" className="menuBtn" aria-label="Auditoria">
-            <div className="icon">A</div>
             <div>Auditoria</div>
           </Link>
 
           <Link href="/usuario" className="menuBtn" aria-label="Usuários">
-            <div className="icon">U</div>
             <div>Usuários</div>
           </Link>
 
-          <Link href="/configuracoes" className="menuBtn" aria-label="Configurações">
-            <div className="icon">⚙</div>
-            <div>Configurações</div>
+          <Link href="/atendimento" className="menuBtn" aria-label="Atendimento">
+            <div>Atendimento</div>
           </Link>
         </nav>
 
