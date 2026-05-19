@@ -10,7 +10,7 @@ const supabase = createClient(
 
 export default function Base() {
   const [topicos, setTopicos] = useState([]);
-  const [comentarios, setComentarios] = useState([]);
+  const [comentarios, setComentarios] = useState({});
   const [novoComentario, setNovoComentario] = useState({});
   const [user, setUser] = useState(null);
   const [search, setSearch] = useState('');
@@ -28,7 +28,11 @@ export default function Base() {
       .select('id, titulo, descricao, categoria')
       .order('created_at', { ascending: false });
 
-    if (!error) setTopicos(data);
+    if (!error) {
+      setTopicos(data);
+      // carrega comentários de cada tópico
+      data.forEach((t) => carregarComentarios(t.id));
+    }
   }
 
   async function carregarComentarios(topicoId) {
@@ -38,7 +42,9 @@ export default function Base() {
       .eq('topico_id', topicoId)
       .order('created_at', { ascending: false });
 
-    if (!error) setComentarios((prev) => ({ ...prev, [topicoId]: data }));
+    if (!error) {
+      setComentarios((prev) => ({ ...prev, [topicoId]: data }));
+    }
   }
 
   async function salvarComentario(topicoId) {
@@ -51,8 +57,7 @@ export default function Base() {
       body: JSON.stringify({
         conteudo,
         topico_id: topicoId,
-        usuario_id: user?.id || null,
-        usuario_nome: user?.email || 'Anônimo'
+        usuario_id: user?.id || null
       })
     });
 
@@ -103,7 +108,7 @@ export default function Base() {
                 <ul className="space-y-2 mb-3">
                   {(comentarios[t.id] || []).map((c) => (
                     <li key={c.id} className="border-b border-gray-700 pb-1">
-                      <strong>{c.usuario_nome || 'Anônimo'}:</strong> {c.conteudo}
+                      <strong>{c.usuario_id || 'Anônimo'}:</strong> {c.conteudo}
                       <br />
                       <small className="text-gray-400">
                         {new Date(c.created_at).toLocaleString('pt-BR', {
