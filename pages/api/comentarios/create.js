@@ -17,6 +17,22 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Conteúdo e tópico são obrigatórios' });
   }
 
+  // Verifica se o tópico existe
+  const { data: topico, error: topicoError } = await supabase
+    .from('topicos')
+    .select('id')
+    .eq('id', topico_id)
+    .single();
+
+  if (topicoError) {
+    return res.status(500).json({ error: topicoError.message });
+  }
+
+  if (!topico) {
+    return res.status(400).json({ error: `Tópico com id ${topico_id} não existe` });
+  }
+
+  // Insere o comentário vinculado ao tópico válido
   const { error } = await supabase
     .from('comentarios')
     .insert({
