@@ -1,46 +1,55 @@
+// pages/login.js
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import Link from 'next/link'
 
-export default function Login(){
+export default function Login() {
   const router = useRouter()
-  const [email,setEmail] = useState('')
-  const [password,setPassword] = useState('')
-  const [error,setError] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
-  async function handleLogin(){
+  async function handleLogin(e) {
+    e.preventDefault()
+    setError('')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if(error){
+    if (error) {
       setError(error.message)
       return
     }
     router.push('/dashboard')
   }
 
-  return(
-    <div className="loginPage">
-      <div className="loginBox">
-        <div className="loginTitle">Entrar</div>
+  return (
+    <div className="page container centerArea">
+      <form onSubmit={handleLogin} className="formStack card" style={{ maxWidth: 400, width: '100%' }}>
+        <h1 className="topicTitle">Entrar</h1>
 
-        <div className="field">
-          <label>Email</label>
-          <input type="email" value={email} onChange={e=>setEmail(e.target.value)} />
-        </div>
+        <label className="formLabel">Email</label>
+        <input
+          type="email"
+          className="formInput"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+        />
 
-        <div className="field">
-          <label>Senha</label>
-          <input type="password" value={password} onChange={e=>setPassword(e.target.value)} />
-        </div>
+        <label className="formLabel">Senha</label>
+        <input
+          type="password"
+          className="formInput"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+        />
 
-        {error && <div style={{color:'#ff6b47', marginBottom:'12px'}}>{error}</div>}
+        {error && <p style={{ color: '#ff6b47', fontWeight: 'bold' }}>{error}</p>}
 
-        <button className="loginBtn" onClick={handleLogin}>Entrar</button>
+        <button type="submit" className="btn btnYellow">Entrar</button>
 
-        <p style={{marginTop:'10px'}}>
+        <p style={{ marginTop: '10px' }}>
           Não tem conta? <Link href="/signup">Cadastre-se</Link>
         </p>
-      </div>
+      </form>
     </div>
   )
 }
