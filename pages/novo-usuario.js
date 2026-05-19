@@ -1,13 +1,18 @@
 // pages/novo-usuario.js
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/router';
 
 export default function NovoUsuario() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('usuario'); // default
   const [saving, setSaving] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    // se quiser, podemos restringir opções de role com base no usuário logado
+  }, []);
 
   async function handleCriar(e) {
     e.preventDefault();
@@ -30,7 +35,7 @@ export default function NovoUsuario() {
       const { error: insertError } = await supabase.from('users').insert({
         id: userId,
         email: email.trim(),
-        role: 'usuario'
+        role: role || 'usuario'
       });
 
       setSaving(false);
@@ -60,6 +65,13 @@ export default function NovoUsuario() {
 
             <label className="formLabel">Senha</label>
             <input className="formInput" value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
+
+            <label className="formLabel">Nível do usuário</label>
+            <select className="formInput" value={role} onChange={(e) => setRole(e.target.value)}>
+              <option value="usuario">Usuário</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="admin">Admin</option>
+            </select>
 
             <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
               <button type="submit" className="btn btnYellow" disabled={saving}>
