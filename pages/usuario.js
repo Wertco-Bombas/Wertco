@@ -64,7 +64,16 @@ export default function Usuario() {
         body: JSON.stringify({ userId })
       });
 
-      const json = await resp.json();
+     let json;
+try {
+  json = await resp.json();
+} catch {
+  const text = await resp.text();
+  console.error('Resposta não é JSON:', text);
+  alert('Erro inesperado: ' + text);
+  return;
+}
+
       if (!resp.ok) {
         console.error('delete-user error', json);
         alert('Erro ao excluir usuário: ' + (json?.error || resp.statusText));
