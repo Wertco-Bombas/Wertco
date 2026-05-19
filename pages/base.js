@@ -1,5 +1,5 @@
 // pages/base.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import imageCompression from 'browser-image-compression';
 import { useRouter } from 'next/router';
@@ -8,16 +8,18 @@ export default function Base() {
   const router = useRouter();
 
   const [topicos, setTopicos] = useState([]);
-  const [comentarios, setComentarios] = useState({});
+  const [comentariosMap, setComentariosMap] = useState({}); // { topicoId: [comentarios] }
   const [novoComentario, setNovoComentario] = useState({});
   const [editandoComentario, setEditandoComentario] = useState({});
   const [sessionUser, setSessionUser] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     async function init() {
       const { data } = await supabase.auth.getSession();
       setSessionUser(data?.session?.user || null);
       await carregarDados();
+      await carregarTodosComentarios();
     }
     init();
   }, []);
@@ -29,15 +31,33 @@ export default function Base() {
 
     if (!error) {
       setTopicos(tops || []);
-      for (const t of tops || []) {
-        carregarComentarios(t.id);
-      }
     } else {
       console.error('Erro ao carregar tópicos:', error);
     }
   }
 
+  // Carrega todos os comentários de uma vez e organiza por topico_id
+  async function carregarTodosComentarios() {
+    const { data, error } = await supabase
+      .from('comentarios')
+      .select('id, conteudo, created_at, user_id, topico_id')
+      .order('id', { ascending: true });
+
+    if (!error) {
+      const map = {};
+      (data || []).forEach(c => {
+        if (!map[c.topico_id]) map[c.topico_id] = [];
+        map[c.topico_id].push(c);
+      });
+      setComentariosMap(map);
+    } else {
+      console.error('Erro ao carregar comentários:', error);
+    }
+  }
+
   async function carregarComentarios(topicoId) {
+    // fallback: se já tem, não recarrega; caso precise forçar, chame carregarTodosComentarios
+    if (comentariosMap[topicoId]) return;
     const { data, error } = await supabase
       .from('comentarios')
       .select('id, conteudo, created_at, user_id')
@@ -45,7 +65,7 @@ export default function Base() {
       .order('id', { ascending: true });
 
     if (!error) {
-      setComentarios(prev => ({ ...prev, [topicoId]: data || [] }));
+      setComentariosMap(prev => ({ ...prev, [topicoId]: data || [] }));
     } else {
       console.error('Erro ao carregar comentários:', error);
     }
@@ -57,13 +77,19 @@ export default function Base() {
 
     const userId = sessionUser?.id || null;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('comentarios')
-      .insert({ conteudo, topico_id: topicoId, user_id: userId });
+      .insert({ conteudo, topico_id: topicoId, user_id: userId })
+      .select();
 
     if (!error) {
+      // atualiza mapa localmente
+      setComentariosMap(prev => {
+        const copy = { ...prev };
+        copy[topicoId] = [...(copy[topicoId] || []), ...(data || [])];
+        return copy;
+      });
       setNovoComentario(prev => ({ ...prev, [topicoId]: '' }));
-      carregarComentarios(topicoId);
     } else {
       alert('Erro ao salvar comentário: ' + error.message);
     }
@@ -79,12 +105,17 @@ export default function Base() {
       .eq('id', comentarioId);
 
     if (!error) {
+      // atualizar localmente
+      setComentariosMap(prev => {
+        const copy = { ...prev };
+        copy[topicoId] = (copy[topicoId] || []).map(c => (c.id === comentarioId ? { ...c, conteudo: novoTexto } : c));
+        return copy;
+      });
       setEditandoComentario(prev => {
         const copy = { ...prev };
         delete copy[comentarioId];
         return copy;
       });
-      carregarComentarios(topicoId);
     } else {
       alert('Erro ao editar comentário: ' + error.message);
     }
@@ -98,7 +129,11 @@ export default function Base() {
       .eq('id', comentarioId);
 
     if (!error) {
-      carregarComentarios(topicoId);
+      setComentariosMap(prev => {
+        const copy = { ...prev };
+        copy[topicoId] = (copy[topicoId] || []).filter(c => c.id !== comentarioId);
+        return copy;
+      });
     } else {
       alert('Erro ao excluir comentário: ' + error.message);
     }
@@ -135,6 +170,20 @@ export default function Base() {
     }
   }
 
+  // Pesquisa: filtra tópicos por título, conteúdo, categoria ou comentários
+  const filteredTopicos = useMemo(() => {
+    const q = (searchTerm || '').trim().toLowerCase();
+    if (!q) return topicos;
+    return topicos.filter(top => {
+      const inTitulo = (top.titulo || '').toLowerCase().includes(q);
+      const inConteudo = (top.conteudo || '').toLowerCase().includes(q);
+      const inCategoria = (top.categorias?.nome || '').toLowerCase().includes(q);
+      const comentarios = comentariosMap[top.id] || [];
+      const inComentarios = comentarios.some(c => (c.conteudo || '').toLowerCase().includes(q));
+      return inTitulo || inConteudo || inCategoria || inComentarios;
+    });
+  }, [topicos, comentariosMap, searchTerm]);
+
   return (
     <div className="page">
       <div className="container">
@@ -149,7 +198,8 @@ export default function Base() {
             placeholder="Pesquisar títulos, descrições, categorias, comentários..."
             className="search-bar"
             aria-label="Pesquisar base de conhecimento"
-            onChange={() => { /* implementar filtro se desejar */ }}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
 
           <div className="actions" style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -182,7 +232,7 @@ export default function Base() {
         <h3 style={{ marginTop: 20, marginBottom: 12, color: 'var(--yellow)' }}>Tópicos</h3>
 
         <div className="topicos-list">
-          {topicos.map(top => (
+          {filteredTopicos.map(top => (
             <div key={top.id} className="topico-card card" style={{ marginBottom: 16 }}>
               <div className="topico-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                 <h3 className="topico-titulo" style={{ margin: 0 }}>{top.titulo}</h3>
@@ -204,7 +254,7 @@ export default function Base() {
               <div className="comentarios" style={{ marginTop: 14 }}>
                 <h4 style={{ marginBottom: 8, color: 'var(--yellow)' }}>Comentários</h4>
                 <ul style={{ margin: 0, paddingLeft: 16 }}>
-                  {(comentarios[top.id] || []).map(com => (
+                  {(comentariosMap[top.id] || []).map(com => (
                     <li key={com.id} style={{ marginBottom: 8 }}>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                         <div style={{ flex: 1 }}>
@@ -291,7 +341,7 @@ export default function Base() {
             </div>
           ))}
 
-          {topicos.length === 0 && (
+          {filteredTopicos.length === 0 && (
             <div className="card" style={{ textAlign: 'center', padding: 24 }}>
               Nenhum tópico encontrado.
             </div>
