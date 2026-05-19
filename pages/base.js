@@ -1,10 +1,12 @@
 // pages/base.js
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 import imageCompression from 'browser-image-compression';
 
 export default function Base() {
+  const router = useRouter();
+
   const [topicos, setTopicos] = useState([]);
   const [comentarios, setComentarios] = useState({});
   const [novoComentario, setNovoComentario] = useState({});
@@ -112,10 +114,37 @@ export default function Base() {
           />
 
           <div className="actions" style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <Link href="/nova-categoria" className="btn btnYellow" aria-label="Nova Categoria">+ Nova Categoria</Link>
-            <Link href="/novo-topico" className="btn btnYellow" aria-label="Novo Tópico">+ Novo Tópico</Link>
-            <Link href="/excluir-categoria" className="btn" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', color: '#fff' }}>- Excluir Categoria</Link>
-            <Link href="/excluir-topico" className="btn" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', color: '#fff' }}>- Excluir Tópico</Link>
+            <button
+              className="btn btnYellow"
+              onClick={() => router.push('/nova-categoria')}
+              aria-label="Nova Categoria"
+            >
+              + Nova Categoria
+            </button>
+
+            <button
+              className="btn btnYellow"
+              onClick={() => router.push('/novo-topico')}
+              aria-label="Novo Tópico"
+            >
+              + Novo Tópico
+            </button>
+
+            <button
+              className="btn btnDangerOutline"
+              onClick={() => router.push('/excluir-categoria')}
+              aria-label="Excluir Categoria"
+            >
+              - Excluir Categoria
+            </button>
+
+            <button
+              className="btn btnDangerOutline"
+              onClick={() => router.push('/excluir-topico')}
+              aria-label="Excluir Tópico"
+            >
+              - Excluir Tópico
+            </button>
           </div>
         </div>
 
