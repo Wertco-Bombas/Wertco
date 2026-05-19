@@ -47,7 +47,8 @@ export default function Login() {
         <button type="submit" className="btn btnYellow">Entrar</button>
 
         <p style={{ marginTop: '10px' }}>
-          Não tem conta? <Link href="/signup">Cadastre-se</Link>
+          {/* <p className="text-sm text-gray-400">Não tem conta?</p> */}
+
         </p>
       </form>
     </div>
