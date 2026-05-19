@@ -1,185 +1,79 @@
-import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
-import Layout from "../components/Layout";
+// pages/usuario.js
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 export default function Usuario() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("user");
-  const [loading, setLoading] = useState(false);
-  const [users, setUsers] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Buscar usuários já cadastrados
   useEffect(() => {
-    async function fetchUsers() {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, email, role");
-      if (!error) {
-        setUsers(data);
+    async function loadUsers() {
+      try {
+        // Exemplo: buscar usuários da tabela 'users' (ajuste conforme seu schema)
+        const { data, error } = await supabase.from('users').select('id, email, role, created_at');
+        if (!error) setUsuarios(data || []);
+        else console.error(error);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
     }
-    fetchUsers();
+    loadUsers();
   }, []);
 
-  async function createUser() {
-    if (!email || !password) {
-      alert("Preencha email e senha");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // 1. Criar usuário no Auth
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) {
-        setLoading(false);
-        alert("Erro ao criar usuário: " + error.message);
-        return;
-      }
-
-      const user = data?.user;
-
-      if (!user) {
-        setLoading(false);
-        alert(
-          "Usuário criado no Auth, mas não retornado. Verifique email confirmation no Supabase."
-        );
-        return;
-      }
-
-      // 2. Evitar duplicação de profile
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (!existingProfile) {
-        const { error: profileError } = await supabase.from("profiles").insert({
-          id: user.id,
-          email: email,
-          role: role,
-        });
-
-        if (profileError) {
-          setLoading(false);
-          alert(
-            "Usuário criado, mas erro ao criar perfil: " + profileError.message
-          );
-          return;
-        }
-      }
-
-      setLoading(false);
-      alert("Usuário criado com sucesso!");
-
-      setEmail("");
-      setPassword("");
-      setRole("user");
-
-      // Atualizar lista
-      const { data: updatedUsers } = await supabase
-        .from("profiles")
-        .select("id, email, role");
-      setUsers(updatedUsers);
-    } catch (err) {
-      setLoading(false);
-      alert("Erro inesperado: " + err.message);
-    }
-  }
-
-  async function deleteUser(id) {
-    if (!confirm("Tem certeza que deseja excluir este usuário?")) return;
-
-    // Excluir do profiles
-    const { error } = await supabase.from("profiles").delete().eq("id", id);
-    if (error) {
-      alert("Erro ao excluir perfil: " + error.message);
-      return;
-    }
-
-    // Atualizar lista
-    const { data: updatedUsers } = await supabase
-      .from("profiles")
-      .select("id, email, role");
-    setUsers(updatedUsers);
-
-    alert("Usuário excluído com sucesso!");
-  }
-
   return (
-    <Layout>
+    <div className="page">
       <div className="container">
+        <div className="topicHeader">
+          <h2 className="topicTitle">Usuários</h2>
+          <div className="badge">{usuarios.length} cadastrados</div>
+        </div>
+
         <div className="card">
-          <h2>👤 Criar Usuário</h2>
-
-          <div className="searchBar">
+          <div className="userListHeader" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
             <input
-              className="input"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              placeholder="Pesquisar usuário por email..."
+              className="search-bar"
+              style={{ maxWidth: 420 }}
             />
+            <button className="btn btnYellow" onClick={() => window.location.href = '/novo-usuario'}>+ Novo Usuário</button>
+          </div>
 
-            <input
-              className="input"
-              placeholder="Senha"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-
-            <select
-              className="select"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="user">User</option>
-              <option value="supervisor">Supervisor</option>
-              <option value="admin">Admin</option>
-            </select>
-
-            <button
-              className="btn btnYellow"
-              onClick={createUser}
-              disabled={loading}
-            >
-              {loading ? "Criando..." : "Criar usuário"}
-            </button>
+          <div className="userTable" style={{ marginTop: 18 }}>
+            {loading ? (
+              <div style={{ padding: 20 }}>Carregando usuários...</div>
+            ) : usuarios.length === 0 ? (
+              <div style={{ padding: 20 }}>Nenhum usuário encontrado.</div>
+            ) : (
+              <table className="tableUsers" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: 'var(--muted)', fontSize: 13 }}>
+                    <th style={{ padding: '10px 12px' }}>Email</th>
+                    <th style={{ padding: '10px 12px' }}>Função</th>
+                    <th style={{ padding: '10px 12px' }}>Criado em</th>
+                    <th style={{ padding: '10px 12px' }}>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usuarios.map(u => (
+                    <tr key={u.id} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+                      <td style={{ padding: '12px' }}>{u.email}</td>
+                      <td style={{ padding: '12px' }}>{u.role || 'usuário'}</td>
+                      <td style={{ padding: '12px' }}>{new Date(u.created_at).toLocaleString()}</td>
+                      <td style={{ padding: '12px' }}>
+                        <button className="btn" style={{ marginRight: 8 }} onClick={() => window.location.href = `/usuario/${u.id}`}>Ver</button>
+                        <button className="btn btnDangerOutline" onClick={() => alert('Implementar edição/exclusão')}>Excluir</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
-
-        <div className="card">
-          <h2>📋 Usuários cadastrados</h2>
-          {users.length === 0 ? (
-            <p className="description">Nenhum usuário encontrado.</p>
-          ) : (
-            <ul>
-              {users.map((u) => (
-                <li key={u.id} className="comment">
-                  <div className="commentTop">
-                    <strong>{u.email}</strong> — <span>{u.role}</span>
-                  </div>
-                  <div className="actions">
-                    <button
-                      className="smallBtn reject"
-                      onClick={() => deleteUser(u.id)}
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       </div>
-    </Layout>
+    </div>
   );
 }
