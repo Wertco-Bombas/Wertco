@@ -15,7 +15,6 @@ export default function NovoUsuario() {
 
     setSaving(true);
 
-    // 1) cria usuário no Auth
     const { data, error: signError } = await supabase.auth.signUp({
       email: email.trim(),
       password
@@ -26,7 +25,6 @@ export default function NovoUsuario() {
       return alert('Erro ao criar usuário: ' + signError.message);
     }
 
-    // 2) opcional: insere metadados na tabela 'users' (ajuste conforme seu schema)
     try {
       const userId = data?.user?.id || null;
       const { error: insertError } = await supabase.from('users').insert({
