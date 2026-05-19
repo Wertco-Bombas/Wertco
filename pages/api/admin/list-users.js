@@ -6,6 +6,14 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+
+const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  alert('Você precisa estar logado como admin para acessar esta página.');
+  return;
+}
+
+
 export default async function handler(req, res) {
   const auth = await checkAdmin(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
