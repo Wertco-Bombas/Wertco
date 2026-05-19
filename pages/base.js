@@ -291,28 +291,58 @@ export default function Base() {
                   ))}
                 </ul>
 
-                <div className="comentario-input" style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    placeholder="Adicionar comentário..."
-                    value={novoComentario[top.id] || ''}
-                    onChange={(e) =>
-                      setNovoComentario(prev => ({ ...prev, [top.id]: e.target.value }))
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        salvarComentario(top.id);
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      height: 44,
-                      borderRadius: 10,
-                      border: '1px solid #222',
-                      padding: '0 12px',
-                      background: 'var(--bg-dark)',
-                      color: '#fff'
-                    }}
+               <div
+  className="comentario-input"
+  style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}
+>
+  <input
+    type="text"
+    placeholder="Adicionar comentário..."
+    value={novoComentario[top.id] || ''}
+    onChange={(e) =>
+      setNovoComentario((prev) => ({ ...prev, [top.id]: e.target.value }))
+    }
+    onKeyDown={async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+
+        const conteudo = novoComentario[top.id];
+        if (!conteudo) return;
+
+        // 👇 aqui usamos o fetch para salvar no backend
+        const resp = await fetch('/api/comentarios/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conteudo,
+            topico_id: top.id,
+            usuario_id: user?.id || null // UUID do usuário logado
+          })
+        });
+
+        const json = await resp.json();
+        if (!resp.ok) {
+          alert('Erro ao salvar comentário: ' + (json.error || resp.statusText));
+        } else {
+          // limpa o campo após salvar
+          setNovoComentario((prev) => ({ ...prev, [top.id]: '' }));
+          // se você tiver função para recarregar comentários, chame aqui
+          // ex: fetchComentarios(top.id);
+        }
+      }
+    }}
+    style={{
+      flex: 1,
+      height: 44,
+      borderRadius: 10,
+      border: '1px solid #222',
+      padding: '0 12px',
+      background: 'var(--bg-dark)',
+      color: '#fff'
+    }}
+  />
+</div>
+
                     aria-label={`Adicionar comentário para ${top.titulo}`}
                   />
 
