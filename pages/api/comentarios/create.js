@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { conteudo, topico_id, usuario_id } = req.body;
+  const { conteudo, topico_id, usuario_id, usuario_nome } = req.body;
 
   if (!conteudo || !topico_id) {
     return res.status(400).json({ error: 'Conteúdo e tópico são obrigatórios' });
@@ -38,7 +38,8 @@ export default async function handler(req, res) {
     .insert({
       conteudo,
       topico_id,
-      usuario_id: usuario_id || null
+      usuario_id: usuario_id || null,
+      usuario_nome: usuario_nome || 'Anônimo' // novo campo
     });
 
   if (error) {
