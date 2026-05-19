@@ -10,8 +10,8 @@ export default function NovoUsuario() {
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
+  // tenta inserir perfil em 'users' ou 'profiles'
   async function tryInsertProfile(userId, emailValue, roleValue) {
-    // Tenta inserir em 'users' primeiro, se falhar tenta 'profiles'
     try {
       const { error: insertError } = await supabase
         .from('users')
@@ -19,7 +19,6 @@ export default function NovoUsuario() {
 
       if (!insertError) return { ok: true, where: 'users' };
 
-      // Se erro indicar coluna ausente ou tabela ausente, tenta profiles
       console.warn('Insert users falhou:', insertError.message);
 
       const { error: insertProfilesError } = await supabase
@@ -28,11 +27,32 @@ export default function NovoUsuario() {
 
       if (!insertProfilesError) return { ok: true, where: 'profiles' };
 
-      // Se também falhar, retorna erro
       return { ok: false, error: insertProfilesError || insertError };
     } catch (err) {
       return { ok: false, error: err };
     }
+  }
+
+  // polling curto para tentar obter user id após signUp
+  async function pollForUserId(maxAttempts = 8, delayMs = 800) {
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        // tenta getUser (retorna user se houver sessão)
+        const userRes = await supabase.auth.getUser();
+        const user = userRes?.data?.user;
+        if (user?.id) return user.id;
+
+        // tenta getSession (às vezes session contém user)
+        const sessionRes = await supabase.auth.getSession();
+        const sessionUser = sessionRes?.data?.session?.user;
+        if (sessionUser?.id) return sessionUser.id;
+      } catch (err) {
+        console.warn('pollForUserId erro:', err);
+      }
+      // espera antes da próxima tentativa
+      await new Promise(res => setTimeout(res, delayMs));
+    }
+    return null;
   }
 
   async function handleCriar(e) {
@@ -52,11 +72,29 @@ export default function NovoUsuario() {
       return alert('Erro ao criar usuário: ' + signError.message);
     }
 
-    const userId = data?.user?.id || null;
+    // se signUp retornou user com id, usamos direto
+    const returnedUserId = data?.user?.id || null;
+
+    let userId = returnedUserId;
+
+    // se não veio userId, tentamos recuperar com polling curto
+    if (!userId) {
+      userId = await pollForUserId(8, 800); // ~6.4s total
+    }
 
     if (!userId) {
       setSaving(false);
-      return alert('Usuário criado no Auth, mas não foi retornado user id.');
+      // Mensagem orientativa para o usuário/admin
+      return alert(
+        'Usuário criado no Auth, mas não foi retornado user id.\n\n' +
+        'Possíveis causas:\n' +
+        '- O projeto exige confirmação por e‑mail antes de ativar a conta (verifique o e‑mail do usuário).\n' +
+        '- A criação de perfis deve ser feita pelo servidor usando a Admin API (service_role) em vez do cliente.\n\n' +
+        'O usuário foi criado no Auth. Para completar o perfil no banco você pode:\n' +
+        '1) Confirmar o e‑mail do usuário e tentar novamente (o id pode aparecer após confirmação).\n' +
+        '2) Criar o perfil no servidor usando a chave service_role (recomendado para criação administrativa).\n\n' +
+        'Se quiser, eu te envio o código de exemplo para criar usuário via Admin API (server side).'
+      );
     }
 
     // 2) tenta inserir perfil em tabelas comuns (users -> profiles)
@@ -67,7 +105,6 @@ export default function NovoUsuario() {
     if (result.ok) {
       router.push('/usuario');
     } else {
-      // Mensagem detalhada para ajudar debug
       console.error('Erro ao salvar perfil:', result.error);
       alert(
         'Usuário criado no Auth, mas erro ao salvar perfil: ' +
