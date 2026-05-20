@@ -85,7 +85,7 @@ export default function Layout({ children }) {
 
           {/* Informações do usuário e botões */}
           {router.pathname !== '/login' && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 ml-auto">
               {userEmail ? (
                 <span className="text-sm text-gray-300">{userEmail}</span>
               ) : (
