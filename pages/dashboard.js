@@ -1,74 +1,82 @@
 // pages/dashboard.js
-import Link from 'next/link';
+
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { supabase } from '../lib/supabase';
 
 export default function Dashboard() {
+  const router = useRouter();
+
   const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadRole();
+    init();
   }, []);
 
-  async function loadRole() {
+  async function init() {
+    setLoading(true);
+
     const { data: { session } } = await supabase.auth.getSession();
 
-    const user = session?.user;
-    if (!user) return;
+    if (!session?.user) {
+      router.push('/login');
+      return;
+    }
 
-    const { data } = await supabase
+    const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', session.user.id)
       .single();
 
-    setUserRole(data?.role || 'user');
+    setUserRole(profile?.role || 'user');
+    setLoading(false);
   }
 
   const isPrivileged = ['admin', 'supervisor'].includes(userRole);
 
+  if (loading) {
+    return <div style={{ padding: 20 }}>Carregando dashboard...</div>;
+  }
+
   return (
     <div className="page">
       <div className="container">
+
         <div className="centerArea">
 
-          <nav className="menuGrid" role="navigation" aria-label="Menu principal">
+          <nav className="menuGrid">
 
-            {/* BASE - TODOS */}
             <Link href="/base" className="menuBtn">
-              <div>Base de Conhecimento</div>
+              Base de Conhecimento
             </Link>
 
-            {/* TREINAMENTO - TODOS */}
             <Link href="/treinamento" className="menuBtn">
-              <div>Treinamento</div>
+              Treinamento
             </Link>
 
-            {/* AUDITORIA - PRIVILEGIADOS */}
+            {/* 🔥 SÓ ADMIN/SUPERVISOR */}
             {isPrivileged && (
               <Link href="/auditoria" className="menuBtn">
-                <div>Auditoria</div>
+                Auditoria
               </Link>
             )}
 
-            {/* USUÁRIOS - PRIVILEGIADOS */}
+            {/* 🔥 SÓ ADMIN/SUPERVISOR */}
             {isPrivileged && (
               <Link href="/usuario" className="menuBtn">
-                <div>Usuários</div>
+                Usuários
               </Link>
             )}
 
-            {/* ATENDIMENTO - TODOS */}
             <Link href="/atendimento" className="menuBtn">
-              <div>Atendimento</div>
+              Atendimento
             </Link>
 
           </nav>
 
-        </div>
-
-        <div className="card" aria-hidden>
-          {/* Intencionalmente vazio */}
         </div>
 
       </div>
