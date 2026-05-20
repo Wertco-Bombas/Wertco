@@ -146,15 +146,20 @@ export default function Base() {
     window.location.href = '/login';
   }
 
-  const filteredTopicos = topicos
-    .filter(t =>
-      !search ||
-      t.titulo.toLowerCase().includes(search.toLowerCase()) ||
-      t.descricao.toLowerCase().includes(search.toLowerCase())
-    )
-    .filter(t =>
-      !selectedCategoria || String(t.categoria_id) === String(selectedCategoria)
-    );
+  const isPrivileged = ['admin', 'supervisor'].includes(userRole);
+
+const filteredTopicos = topicos
+  .filter(t =>
+    !search ||
+    t.titulo.toLowerCase().includes(search.toLowerCase()) ||
+    t.descricao.toLowerCase().includes(search.toLowerCase())
+  )
+  .filter(t =>
+    !selectedCategoria || String(t.categoria_id) === String(selectedCategoria)
+  )
+  .filter(t =>
+    isPrivileged ? true : t.approved === true
+  );
 
   return (
     <div className="base-container">
