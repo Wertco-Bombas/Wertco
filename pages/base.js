@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { logAction } from '../lib/audit';
 
 export default function Base() {
   const [topicos, setTopicos] = useState([]);
@@ -27,7 +28,7 @@ export default function Base() {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, username')
       .eq('id', session.user.id)
       .single();
 
@@ -70,33 +71,41 @@ export default function Base() {
   }
 
   // =========================
-  // CREATE COMMENT (APROVAÇÃO)
+  // CREATE COMMENT
   // =========================
   async function handleAddComment(topicoId) {
     const text = commentState[topicoId]?.text?.trim();
     if (!text) return;
 
-    const isAutoApproved = isPrivileged;
+    const approved = isPrivileged;
 
     const { error } = await supabase.from('comentarios').insert({
       conteudo: text,
       topico_id: topicoId,
       usuario_id: user.id,
       user_email: user.email,
-      approved: isAutoApproved
+      approved
     });
 
     if (error) return alert(error.message);
 
-    if (!isAutoApproved) {
-      setPopup('Seu comentário foi enviado para aprovação');
+    await logAction({
+      acao: 'CREATE_COMMENT',
+      entidade: 'comentarios',
+      usuario_id: user.id,
+      usuario_email: user.email,
+      payload: { topicoId, text }
+    });
+
+    if (!approved) {
+      setPopup('Comentário enviado para aprovação');
     }
 
     await loadData();
   }
 
   // =========================
-  // APROVAR
+  // APPROVE
   // =========================
   async function approveComment(id) {
     const { error } = await supabase
@@ -106,11 +115,19 @@ export default function Base() {
 
     if (error) return alert(error.message);
 
+    await logAction({
+      acao: 'APPROVE_COMMENT',
+      entidade: 'comentarios',
+      usuario_id: user.id,
+      usuario_email: user.email,
+      payload: { commentId: id }
+    });
+
     await loadData();
   }
 
   // =========================
-  // EXCLUIR
+  // DELETE
   // =========================
   async function deleteComment(id) {
     const { error } = await supabase
@@ -120,11 +137,19 @@ export default function Base() {
 
     if (error) return alert(error.message);
 
+    await logAction({
+      acao: 'DELETE_COMMENT',
+      entidade: 'comentarios',
+      usuario_id: user.id,
+      usuario_email: user.email,
+      payload: { commentId: id }
+    });
+
     await loadData();
   }
 
   // =========================
-  // EDITAR (ANTES DA APROVAÇÃO)
+  // EDIT
   // =========================
   async function editComment(id, text) {
     const { error } = await supabase
@@ -133,6 +158,14 @@ export default function Base() {
       .eq('id', id);
 
     if (error) return alert(error.message);
+
+    await logAction({
+      acao: 'EDIT_COMMENT',
+      entidade: 'comentarios',
+      usuario_id: user.id,
+      usuario_email: user.email,
+      payload: { commentId: id, text }
+    });
 
     await loadData();
   }
@@ -146,52 +179,66 @@ export default function Base() {
           position: 'fixed',
           top: 20,
           right: 20,
-          background: '#333',
-          padding: 10,
-          color: '#fff'
+          background: '#222',
+          padding: 12,
+          color: '#fff',
+          borderRadius: 8
         }}>
           {popup}
           <button onClick={() => setPopup(null)}>X</button>
         </div>
       )}
 
-      {/* LADO ESQUERDO */}
+      {/* LEFT */}
       <div style={{ width: '70%' }}>
 
         {topicos.map(t => (
-          <div key={t.id} style={{ marginBottom: 30, padding: 15, border: '1px solid #444' }}>
+          <div key={t.id} style={{
+            marginBottom: 30,
+            padding: 20,
+            border: '1px solid #333',
+            borderRadius: 8
+          }}>
 
             <h3>{t.titulo}</h3>
             <p>{t.conteudo}</p>
 
-            {/* COMENTÁRIOS */}
             {(comentariosMap[t.id] || [])
               .filter(c => isPrivileged ? true : c.approved)
               .map(c => {
 
                 const canEdit = user?.id === c.usuario_id && !c.approved;
-                const canModerate = isPrivileged;
 
                 return (
-                  <div key={c.id} style={{ marginTop: 10, padding: 10, background: '#222' }}>
+                  <div key={c.id} style={{
+                    marginTop: 10,
+                    padding: 10,
+                    background: '#1f1f1f',
+                    borderRadius: 6
+                  }}>
 
-                    <b>{c.user_email}</b>
+                    <b>
+                      {c.username || c.user_email || 'Usuário'}
+                    </b>
+
                     <p>{c.conteudo}</p>
 
-                    <small>Status: {c.approved ? 'Aprovado' : 'Pendente'}</small>
+                    <small>
+                      {c.approved ? 'Aprovado' : 'Pendente'}
+                    </small>
 
-                    <div style={{ marginTop: 5, display: 'flex', gap: 10 }}>
+                    <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
 
                       {canEdit && (
                         <button onClick={() => {
-                          const novo = prompt('Editar comentário:', c.conteudo);
+                          const novo = prompt('Editar comentário', c.conteudo);
                           if (novo) editComment(c.id, novo);
                         }}>
                           Editar
                         </button>
                       )}
 
-                      {canModerate && (
+                      {isPrivileged && (
                         <>
                           <button onClick={() => approveComment(c.id)}>
                             Aprovar
@@ -204,14 +251,15 @@ export default function Base() {
                       )}
 
                     </div>
+
                   </div>
                 );
-              })
-            }
+              })}
 
             {/* INPUT */}
             <div style={{ marginTop: 10 }}>
               <textarea
+                style={{ width: '100%', minHeight: 60 }}
                 onChange={(e) =>
                   setLocalComment(t.id, { text: e.target.value })
                 }
@@ -228,7 +276,7 @@ export default function Base() {
 
       </div>
 
-      {/* LADO DIREITO (melhor aproveitamento tela) */}
+      {/* RIGHT */}
       <div style={{ width: '30%', borderLeft: '1px solid #333', paddingLeft: 10 }}>
         <h4>Categorias</h4>
         {categorias.map(c => (
