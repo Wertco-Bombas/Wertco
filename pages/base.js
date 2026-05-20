@@ -49,6 +49,7 @@ export default function Base() {
       ...t,
       titulo: t.titulo || '',
       descricao: t.conteudo || '',
+      approved: t.approved ?? true
     }));
 
     setTopicos(normalizedTopicos);
@@ -64,7 +65,15 @@ export default function Base() {
 
     (coms || []).forEach(c => {
       if (!map[c.topico_id]) map[c.topico_id] = [];
-      map[c.topico_id].push(c);
+
+      map[c.topico_id].push({
+        id: c.id,
+        conteudo: c.conteudo,
+        usuario_id: c.usuario_id,
+        usuario_email: c.usuario_email || c.user_email || 'Anônimo',
+        created_at: c.created_at,
+        approved: c.approved ?? true
+      });
     });
 
     setComentariosMap(map);
@@ -78,15 +87,15 @@ export default function Base() {
     setCommentState(prev => ({
       ...prev,
       [topicoId]: {
-        ...(prev[topicoId] || { text: '', imageFile: null }),
+        ...(prev[topicoId] || { text: '' }),
         ...patch
       }
     }));
   }
 
-  // ==============================
-  // CORRIGIDO 100%
-  // ==============================
+  // =========================
+  // INSERT CORRIGIDO
+  // =========================
   async function handleAddComment(topicoId) {
     const state = commentState[topicoId] || {};
     const text = (state.text || '').trim();
@@ -96,17 +105,18 @@ export default function Base() {
     try {
       const { error } = await supabase.from('comentarios').insert({
         conteudo: text,
-  topico_id: Number(topicoId),
-  usuario_id: user?.id || null,
-  user_email: user?.email || null
-});
+        topico_id: Number(topicoId),
+        usuario_id: user?.id || null,
+        usuario_email: user?.email || null,
+        approved: false
+      });
 
       if (error) {
         alert(error.message);
         return;
       }
 
-      setLocalComment(topicoId, { text: '', imageFile: null });
+      setLocalComment(topicoId, { text: '' });
       await loadData();
 
     } catch (err) {
@@ -148,18 +158,18 @@ export default function Base() {
 
   const isPrivileged = ['admin', 'supervisor'].includes(userRole);
 
-const filteredTopicos = topicos
-  .filter(t =>
-    !search ||
-    t.titulo.toLowerCase().includes(search.toLowerCase()) ||
-    t.descricao.toLowerCase().includes(search.toLowerCase())
-  )
-  .filter(t =>
-    !selectedCategoria || String(t.categoria_id) === String(selectedCategoria)
-  )
-  .filter(t =>
-    isPrivileged ? true : t.approved === true
-  );
+  const filteredTopicos = topicos
+    .filter(t =>
+      !search ||
+      t.titulo.toLowerCase().includes(search.toLowerCase()) ||
+      t.descricao.toLowerCase().includes(search.toLowerCase())
+    )
+    .filter(t =>
+      !selectedCategoria || String(t.categoria_id) === String(selectedCategoria)
+    )
+    .filter(t =>
+      isPrivileged ? true : t.approved === true
+    );
 
   return (
     <div className="base-container">
@@ -213,9 +223,6 @@ const filteredTopicos = topicos
               <button onClick={() => window.location.href = '/nova-categoria'}>
                 + Nova Categoria
               </button>
-              <button>
-                Excluir Categoria
-              </button>
             </div>
           )}
 
@@ -227,7 +234,10 @@ const filteredTopicos = topicos
 
         {filteredTopicos.map(topico => {
           const state = commentState[topico.id] || {};
-          const comentarios = comentariosMap[topico.id] || [];
+
+          const comentarios = (comentariosMap[topico.id] || []).filter(c =>
+            isPrivileged ? true : c.approved === true
+          );
 
           return (
             <div key={topico.id} className="topico-card">
@@ -259,7 +269,7 @@ const filteredTopicos = topicos
                     <div key={c.id} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid #333' }}>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <strong>{c.usuario_email || 'Anônimo'}</strong>
+                        <strong>{c.usuario_email}</strong>
 
                         <span style={{ fontSize: 11, color: '#888' }}>
                           {c.created_at
