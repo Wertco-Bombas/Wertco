@@ -10,115 +10,101 @@ export default function NovoTopico() {
   const [categorias, setCategorias] = useState([]);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState(null);
-  const [userRole, setUserRole] = useState('user'); // default 'user'
+  const [userRole, setUserRole] = useState('user');
+
   const router = useRouter();
 
+  const isPrivileged = ['admin', 'supervisor'].includes(userRole);
+
   useEffect(() => {
-    async function init() {
-      // carrega categorias
-      const { data: cats, error: catsError } = await supabase.from('categorias').select('id, nome').order('nome', { ascending: true });
-      if (catsError) {
-        console.error('Erro ao carregar categorias:', catsError);
-        setCategorias([]);
-      } else {
-        setCategorias(cats || []);
-      }
-
-      // carrega sessão do supabase
-      const { data } = await supabase.auth.getSession();
-      const session = data?.session;
-      if (session?.user) {
-        setUser({ id: session.user.id, email: session.user.email });
-
-        // tenta buscar role do usuário na tabela profiles (ajuste se usar outro nome)
-        try {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-
-          if (!profileError && profile?.role) {
-            setUserRole(profile.role);
-          } else {
-            // se não encontrou profile, tenta buscar em uma tabela users (fallback)
-            const { data: udata, error: uerr } = await supabase
-              .from('users')
-              .select('role')
-              .eq('id', session.user.id)
-              .single();
-
-            if (!uerr && udata?.role) setUserRole(udata.role);
-          }
-        } catch (err) {
-          console.warn('Não foi possível obter role do usuário:', err);
-        }
-      } else {
-        setUser(null);
-      }
-    }
-
     init();
+  }, []);
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser({ id: session.user.id, email: session.user.email });
-        // recarregar role simplificado (poderia repetir a lógica acima)
-        (async () => {
-          try {
-            const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-            if (profile?.role) setUserRole(profile.role);
-          } catch (e) {
-            // ignore
-          }
-        })();
-      } else {
-        setUser(null);
-        setUserRole('user');
-      }
+  async function init() {
+    // categorias
+    const { data: cats } = await supabase
+      .from('categorias')
+      .select('id, nome')
+      .order('nome', { ascending: true });
+
+    setCategorias(cats || []);
+
+    // sessão
+    const { data } = await supabase.auth.getSession();
+    const session = data?.session;
+
+    if (!session?.user) return;
+
+    setUser({
+      id: session.user.id,
+      email: session.user.email
     });
 
-    return () => listener?.subscription?.unsubscribe?.();
-  }, []);
+    // role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    setUserRole(profile?.role || 'user');
+  }
+
+  async function registrarAuditoria(topicoId, status) {
+    try {
+      await supabase.from('auditoria').insert({
+        acao: 'CRIAR_TOPICO',
+        entidade: 'topicos',
+        entidade_id: topicoId,
+        status,
+        usuario_email: user?.email,
+        payload: {
+          titulo,
+          categoria_id: categoriaId
+        }
+      });
+    } catch (err) {
+      console.warn('Falha auditoria:', err);
+    }
+  }
 
   async function handleSalvar(e) {
     e.preventDefault();
 
-    if (!titulo.trim()) {
-      return alert('Informe o título');
-    }
-
-    // exige categoria selecionada
-    if (!categoriaId) {
-      return alert('Selecione uma categoria antes de criar o tópico.');
-    }
+    if (!titulo.trim()) return alert('Informe o título');
+    if (!categoriaId) return alert('Selecione uma categoria');
 
     setSaving(true);
 
-    // determina se o tópico já fica aprovado automaticamente
-    const isPrivileged = userRole === 'admin' || userRole === 'supervisor';
-    const payload = {
-      titulo: titulo.trim(),
-      conteudo: conteudo || '',
-      categoria_id: categoriaId,
-      user_email: user?.email || null,
-      user_role: userRole || 'user',
-      approved: isPrivileged ? true : false
-    };
+    const approved = isPrivileged;
 
-    const { error } = await supabase.from('topicos').insert([payload]);
+    const { data, error } = await supabase
+      .from('topicos')
+      .insert([
+        {
+          titulo: titulo.trim(),
+          conteudo: conteudo || '',
+          categoria_id: categoriaId,
+          user_email: user?.email,
+          usuario_id: user?.id,
+          approved
+        }
+      ])
+      .select()
+      .single();
 
     setSaving(false);
 
     if (error) {
-      console.error('Erro ao criar tópico:', error);
-      alert('Erro ao criar tópico: ' + (error.message || 'Erro desconhecido'));
+      alert(error.message);
       return;
     }
 
-    // se o tópico ficou pendente e o usuário não é supervisor/admin, avisar que aguarda aprovação
-    if (!isPrivileged) {
-      alert('Tópico criado e enviado para aprovação. Um supervisor ou administrador precisa aprová-lo antes de ficar visível.');
+    // 🔥 AUDITORIA AUTOMÁTICA
+    await registrarAuditoria(data.id, approved ? 'approved' : 'pending');
+
+    if (!approved) {
+      alert('Tópico enviado para aprovação do supervisor/admin.');
     }
 
     router.push('/base');
@@ -133,59 +119,49 @@ export default function NovoTopico() {
 
         <div className="card">
           <form onSubmit={handleSalvar} className="formStack">
-            <label className="formLabel">Título</label>
+
+            <label>Título</label>
             <input
-              className="formInput"
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
-              placeholder="Título do tópico"
+              placeholder="Título"
             />
 
-            <label className="formLabel">Conteúdo</label>
+            <label>Conteúdo</label>
             <textarea
-              className="formTextarea"
               value={conteudo}
               onChange={(e) => setConteudo(e.target.value)}
               rows={6}
-              placeholder="Descreva o conteúdo do tópico"
+              placeholder="Conteúdo"
             />
 
-            <label className="formLabel">Categoria</label>
+            <label>Categoria</label>
             <select
-              className="formInput"
               value={categoriaId}
               onChange={(e) => setCategoriaId(e.target.value)}
             >
-              <option value="">-- Selecione uma categoria --</option>
-              {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              <option value="">Selecione</option>
+              {categorias.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
             </select>
 
-            <div style={{ marginTop: 8, color: '#777', fontSize: 13 }}>
-              {user ? (
-                <div>
-                  Criando como <strong>{user.email}</strong> ({userRole})
-                </div>
-              ) : (
-                <div>Você precisa estar logado para criar um tópico.</div>
-              )}
+            <div style={{ marginTop: 10, fontSize: 13, color: '#888' }}>
+              Criando como: {user?.email} ({userRole})
             </div>
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-              <button
-                type="submit"
-                className="btn btnYellow"
-                disabled={saving || !user}
-              >
-                {saving ? 'Salvando...' : 'Criar Tópico'}
+            <div style={{ display: 'flex', gap: 10, marginTop: 15 }}>
+              <button disabled={saving || !user}>
+                {saving ? 'Salvando...' : 'Criar'}
               </button>
-              <button
-                type="button"
-                className="btn btnDangerOutline"
-                onClick={() => router.push('/base')}
-              >
+
+              <button type="button" onClick={() => router.push('/base')}>
                 Cancelar
               </button>
             </div>
+
           </form>
         </div>
       </div>
