@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
-import Link from 'next/link'
 
 export default function Login() {
   const router = useRouter()
@@ -22,8 +21,12 @@ export default function Login() {
   }
 
   return (
-    <div className="page container centerArea">
-      <form onSubmit={handleLogin} className="formStack card" style={{ maxWidth: 400, width: '100%' }}>
+    <div className="login-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+      <form 
+        onSubmit={handleLogin} 
+        className="formStack card" 
+        style={{ maxWidth: 400, width: '100%' }}
+      >
         <h1 className="topicTitle">Entrar</h1>
 
         <label className="formLabel">Email</label>
@@ -46,9 +49,8 @@ export default function Login() {
 
         <button type="submit" className="btn btnYellow">Entrar</button>
 
-        <p style={{ marginTop: '10px' }}>
-          {/* <p className="text-sm text-gray-400">Não tem conta?</p> */}
-
+        <p style={{ marginTop: '10px', textAlign: 'center' }}>
+          Não tem conta? <a href="/signup" style={{ color: '#0070f3' }}>Cadastre-se</a>
         </p>
       </form>
     </div>
