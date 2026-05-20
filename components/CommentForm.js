@@ -17,12 +17,11 @@ export default function CommentForm({ topicoId = 1 }) {
     setResult(null);
 
     try {
-      // Sessão do usuário
+      // pega sessão (opcional)
       const {
         data: { session }
       } = await supabase.auth.getSession();
 
-      // Payload
       const payload = {
         conteudo: conteudo.trim(),
         topico_id: Number(topicoId),
@@ -30,16 +29,14 @@ export default function CommentForm({ topicoId = 1 }) {
         usuario_email: session?.user?.email || null
       };
 
-      console.log('ENVIANDO PAYLOAD:', payload);
+      console.log('PAYLOAD ENVIADO:', payload);
 
-      // Validação
       if (!payload.conteudo) {
         setErrorMsg('Digite um comentário');
         setLoading(false);
         return;
       }
 
-      // Chama API
       const response = await fetch('/api/comentarios/create', {
         method: 'POST',
         headers: {
@@ -50,7 +47,7 @@ export default function CommentForm({ topicoId = 1 }) {
 
       const data = await response.json();
 
-      console.log('RESPOSTA API:', data);
+      console.log('RESPOSTA:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao salvar comentário');
@@ -87,43 +84,20 @@ export default function CommentForm({ topicoId = 1 }) {
         />
 
         <div style={{ marginTop: 8 }}>
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              padding: '8px 12px',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
+          <button type="submit" disabled={loading}>
             {loading ? 'Enviando...' : 'Enviar comentário'}
           </button>
         </div>
       </form>
 
       {errorMsg && (
-        <div
-          style={{
-            marginTop: 12,
-            color: 'crimson',
-            background: '#ffe5e5',
-            padding: 10,
-            borderRadius: 6
-          }}
-        >
+        <div style={{ marginTop: 12, color: 'crimson' }}>
           <strong>Erro:</strong> {errorMsg}
         </div>
       )}
 
       {result && (
-        <pre
-          style={{
-            marginTop: 12,
-            background: '#f6f6f6',
-            padding: 12,
-            borderRadius: 6,
-            overflow: 'auto'
-          }}
-        >
+        <pre style={{ marginTop: 12, background: '#f6f6f6', padding: 12 }}>
           {JSON.stringify(result, null, 2)}
         </pre>
       )}
