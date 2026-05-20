@@ -192,131 +192,53 @@ export default function Base() {
   }
 
   // Adicionar comentário (criado como pendente para usuários comuns)
-  async function handleAddComment(topicoId) {
-    const state = commentState[topicoId] || { text: '', imageFile: null };
-    const text = (state.text || '').trim();
-    if (!text) return alert('Escreva um comentário antes de enviar.');
+// debug: substitua temporariamente seu handleAddComment por isto
+async function handleAddComment(topicoId) {
+  const state = commentState[topicoId] || { text: '', imageFile: null };
+  const text = (state.text || '').trim();
+  if (!text) return alert('Escreva um comentário antes de enviar.');
 
-    let imageUrl = null;
-    if (state.imageFile) {
-      imageUrl = await uploadImage(state.imageFile);
-    }
-
-    const isPrivileged = userRole === 'admin' || userRole === 'supervisor';
-    const payload = {
-      texto: text,
-      topico_id: topicoId,
-      user_id: user?.id || null,
-      user_email: user?.email || null,
-      user_role: userRole || 'user',
-      image_url: imageUrl,
-      approved: isPrivileged ? true : false,
-    };
-
-    const { error } = await supabase.from('comentarios').insert([payload]);
-    if (error) {
-      console.error('Erro ao salvar comentário:', error);
-      alert('Erro ao salvar comentário.');
-      return;
-    }
-
-    setLocalComment(topicoId, { text: '', imageFile: null, editingId: null });
-    await loadTopicosAndComments();
-    if (!isPrivileged) alert('Comentário enviado e aguardando aprovação de supervisor/admin.');
+  let imageUrl = null;
+  if (state.imageFile) {
+    imageUrl = await uploadImage(state.imageFile);
   }
 
-  // Editar comentário (apenas texto)
-  function startEditComment(topicoId, comentario) {
-    setLocalComment(topicoId, { text: comentario.texto || '', imageFile: null, editingId: comentario.id });
-  }
+  const isPrivileged = userRole === 'admin' || userRole === 'supervisor';
+  const payload = {
+    texto: text,
+    topico_id: Number(topicoId),
+    user_id: user?.id || null,
+    user_email: user?.email || null,
+    user_role: userRole || 'user',
+    image_url: imageUrl,
+    approved: isPrivileged ? true : false,
+  };
 
-  async function saveEditComment(topicoId) {
-    const state = commentState[topicoId] || {};
-    const text = (state.text || '').trim();
-    if (!text) return alert('Escreva o comentário antes de salvar.');
-
-    const { error } = await supabase
+  try {
+    const { data, error, status } = await supabase
       .from('comentarios')
-      .update({ texto: text, approved: userRole === 'admin' || userRole === 'supervisor' ? true : false })
-      .eq('id', state.editingId);
+      .insert([payload])
+      .select();
+
+    console.log('INSERT payload:', payload);
+    console.log('Supabase response status:', status);
+    console.log('Supabase response data:', data);
+    console.log('Supabase response error:', error);
 
     if (error) {
-      console.error('Erro ao editar comentário:', error);
-      alert('Erro ao editar comentário.');
+      alert('Erro ao salvar comentário: ' + (error.message || JSON.stringify(error)));
       return;
     }
 
     setLocalComment(topicoId, { text: '', imageFile: null, editingId: null });
     await loadTopicosAndComments();
+    if (!isPrivileged) alert('Comentário enviado e aguardando aprovação.');
+  } catch (err) {
+    console.error('Unexpected error saving comment', err);
+    alert('Erro inesperado ao salvar comentário. Veja console.');
   }
+}
 
-  // Excluir comentário
-  async function deleteComment(commentId) {
-    const ok = confirm('Deseja realmente excluir este comentário?');
-    if (!ok) return;
-
-    const { error } = await supabase.from('comentarios').delete().eq('id', commentId);
-    if (error) {
-      console.error('Erro ao excluir comentário:', error);
-      alert('Erro ao excluir comentário.');
-      return;
-    }
-    await loadTopicosAndComments();
-  }
-
-  // Aprovar / Rejeitar comentário (chama API backend) - usa rota correta e envia token
-  async function toggleApproveComment(commentId, approve) {
-    try {
-      const { data } = await supabase.auth.getSession();
-      const token = data?.session?.access_token;
-
-      const res = await fetch('/api/comentarios/approve-comment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ id: commentId, approve }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.error || 'Falha na requisição de aprovação');
-      }
-
-      await loadTopicosAndComments();
-    } catch (err) {
-      console.error('Erro ao aprovar/rejeitar comentário:', err);
-      alert('Erro ao aprovar/rejeitar comentário.');
-    }
-  }
-
-  // Aprovar / Rejeitar tópico - usa rota correta e envia token
-  async function toggleApproveTopico(topicoId, approve) {
-    try {
-      const { data } = await supabase.auth.getSession();
-      const token = data?.session?.access_token;
-
-      const res = await fetch('/api/comentarios/approve-topico', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ id: topicoId, approve }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.error || 'Falha na requisição de aprovação');
-      }
-
-      await loadTopicosAndComments();
-    } catch (err) {
-      console.error('Erro ao aprovar/rejeitar tópico:', err);
-      alert('Erro ao aprovar/rejeitar tópico.');
-    }
-  }
 
   // Utilitários de visibilidade
   function canSeeUnapproved() {
