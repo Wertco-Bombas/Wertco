@@ -1,6 +1,7 @@
+// pages/base.js
+
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { logAction } from '../lib/audit';
 
 export default function Base() {
   const [topicos, setTopicos] = useState([]);
@@ -28,7 +29,7 @@ export default function Base() {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, username')
+      .select('role')
       .eq('id', session.user.id)
       .single();
 
@@ -41,7 +42,10 @@ export default function Base() {
     const { data: cats } = await supabase.from('categorias').select('*');
     setCategorias(cats || []);
 
-    const { data: tops } = await supabase.from('topicos').select('*');
+    const { data: tops } = await supabase
+      .from('topicos')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     const { data: coms } = await supabase
       .from('comentarios')
@@ -70,43 +74,30 @@ export default function Base() {
     }));
   }
 
-  // =========================
+  // =======================
   // CREATE COMMENT
-  // =========================
+  // =======================
   async function handleAddComment(topicoId) {
     const text = commentState[topicoId]?.text?.trim();
     if (!text) return;
-
-    const approved = isPrivileged;
 
     const { error } = await supabase.from('comentarios').insert({
       conteudo: text,
       topico_id: topicoId,
       usuario_id: user.id,
       user_email: user.email,
-      approved
+      approved: isPrivileged
     });
 
     if (error) return alert(error.message);
 
-    await logAction({
-      acao: 'CREATE_COMMENT',
-      entidade: 'comentarios',
-      usuario_id: user.id,
-      usuario_email: user.email,
-      payload: { topicoId, text }
-    });
-
-    if (!approved) {
-      setPopup('Comentário enviado para aprovação');
-    }
-
+    setPopup(isPrivileged ? null : 'Comentário enviado para aprovação');
     await loadData();
   }
 
-  // =========================
+  // =======================
   // APPROVE
-  // =========================
+  // =======================
   async function approveComment(id) {
     const { error } = await supabase
       .from('comentarios')
@@ -115,20 +106,12 @@ export default function Base() {
 
     if (error) return alert(error.message);
 
-    await logAction({
-      acao: 'APPROVE_COMMENT',
-      entidade: 'comentarios',
-      usuario_id: user.id,
-      usuario_email: user.email,
-      payload: { commentId: id }
-    });
-
     await loadData();
   }
 
-  // =========================
+  // =======================
   // DELETE
-  // =========================
+  // =======================
   async function deleteComment(id) {
     const { error } = await supabase
       .from('comentarios')
@@ -137,41 +120,11 @@ export default function Base() {
 
     if (error) return alert(error.message);
 
-    await logAction({
-      acao: 'DELETE_COMMENT',
-      entidade: 'comentarios',
-      usuario_id: user.id,
-      usuario_email: user.email,
-      payload: { commentId: id }
-    });
-
-    await loadData();
-  }
-
-  // =========================
-  // EDIT
-  // =========================
-  async function editComment(id, text) {
-    const { error } = await supabase
-      .from('comentarios')
-      .update({ conteudo: text })
-      .eq('id', id);
-
-    if (error) return alert(error.message);
-
-    await logAction({
-      acao: 'EDIT_COMMENT',
-      entidade: 'comentarios',
-      usuario_id: user.id,
-      usuario_email: user.email,
-      payload: { commentId: id, text }
-    });
-
     await loadData();
   }
 
   return (
-    <div style={{ display: 'flex', padding: 20, gap: 20 }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#111', color: '#fff' }}>
 
       {/* POPUP */}
       {popup && (
@@ -180,9 +133,9 @@ export default function Base() {
           top: 20,
           right: 20,
           background: '#222',
-          padding: 12,
-          color: '#fff',
-          borderRadius: 8
+          padding: 15,
+          border: '1px solid #555',
+          zIndex: 999
         }}>
           {popup}
           <button onClick={() => setPopup(null)}>X</button>
@@ -190,95 +143,75 @@ export default function Base() {
       )}
 
       {/* LEFT */}
-      <div style={{ width: '70%' }}>
+      <div style={{ flex: 3, padding: 20 }}>
 
-        {topicos.map(t => (
-          <div key={t.id} style={{
-            marginBottom: 30,
-            padding: 20,
-            border: '1px solid #333',
-            borderRadius: 8
-          }}>
+        {topicos.map(t => {
 
-            <h3>{t.titulo}</h3>
-            <p>{t.conteudo}</p>
+          const comentarios = (comentariosMap[t.id] || [])
+            .filter(c => isPrivileged ? true : c.approved);
 
-            {(comentariosMap[t.id] || [])
-              .filter(c => isPrivileged ? true : c.approved)
-              .map(c => {
+          return (
+            <div key={t.id} style={{
+              marginBottom: 25,
+              padding: 15,
+              border: '1px solid #333',
+              borderRadius: 8
+            }}>
 
-                const canEdit = user?.id === c.usuario_id && !c.approved;
+              <h2>{t.titulo}</h2>
+              <p>{t.conteudo}</p>
+
+              {comentarios.map(c => {
+                const canModerate = isPrivileged;
 
                 return (
-                  <div key={c.id} style={{
-                    marginTop: 10,
-                    padding: 10,
-                    background: '#1f1f1f',
-                    borderRadius: 6
-                  }}>
+                  <div key={c.id} style={{ marginTop: 10, padding: 10, background: '#222' }}>
 
-                    <b>
-                      {c.username || c.user_email || 'Usuário'}
-                    </b>
-
+                    <b>{c.user_email || 'Anônimo'}</b>
                     <p>{c.conteudo}</p>
 
                     <small>
                       {c.approved ? 'Aprovado' : 'Pendente'}
                     </small>
 
-                    <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
 
-                      {canEdit && (
-                        <button onClick={() => {
-                          const novo = prompt('Editar comentário', c.conteudo);
-                          if (novo) editComment(c.id, novo);
-                        }}>
-                          Editar
-                        </button>
-                      )}
-
-                      {isPrivileged && (
+                      {canModerate && (
                         <>
-                          <button onClick={() => approveComment(c.id)}>
-                            Aprovar
-                          </button>
-
-                          <button onClick={() => deleteComment(c.id)}>
-                            Excluir
-                          </button>
+                          <button onClick={() => approveComment(c.id)}>Aprovar</button>
+                          <button onClick={() => deleteComment(c.id)}>Excluir</button>
                         </>
                       )}
 
                     </div>
-
                   </div>
                 );
               })}
 
-            {/* INPUT */}
-            <div style={{ marginTop: 10 }}>
-              <textarea
-                style={{ width: '100%', minHeight: 60 }}
-                onChange={(e) =>
-                  setLocalComment(t.id, { text: e.target.value })
-                }
-                placeholder="Comentário..."
-              />
+              <div style={{ marginTop: 10 }}>
+                <textarea
+                  style={{ width: '100%' }}
+                  onChange={(e) => setLocalComment(t.id, { text: e.target.value })}
+                  placeholder="Comentário..."
+                />
+                <button onClick={() => handleAddComment(t.id)}>
+                  Enviar
+                </button>
+              </div>
 
-              <button onClick={() => handleAddComment(t.id)}>
-                Enviar
-              </button>
             </div>
-
-          </div>
-        ))}
+          );
+        })}
 
       </div>
 
-      {/* RIGHT */}
-      <div style={{ width: '30%', borderLeft: '1px solid #333', paddingLeft: 10 }}>
-        <h4>Categorias</h4>
+      {/* RIGHT SIDEBAR */}
+      <div style={{
+        flex: 1,
+        borderLeft: '1px solid #333',
+        padding: 20
+      }}>
+        <h3>Categorias</h3>
         {categorias.map(c => (
           <div key={c.id}>{c.nome}</div>
         ))}
