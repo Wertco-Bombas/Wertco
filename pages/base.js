@@ -98,7 +98,7 @@ export default function Base() {
         conteudo: text,
         topico_id: Number(topicoId),
         usuario_id: user?.id || null,
-        usuario_email: user?.email || null
+        user_email: user?.email || null
       });
 
       if (error) {
