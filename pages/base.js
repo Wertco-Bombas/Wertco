@@ -31,6 +31,7 @@ export default function Base() {
     return () => listener?.subscription?.unsubscribe?.();
   }, []);
 
+  // Carrega categorias
   async function loadCategorias() {
     const { data, error } = await supabase
       .from('categorias')
@@ -45,94 +46,89 @@ export default function Base() {
     setCategorias(data || []);
   }
 
-// Função segura para carregar comentários (substitua a versão atual)
-async function loadTopicosAndComments() {
-  // carrega tópicos (já mapeados para titulo/conteudo no código anterior)
-  const { data: topicosData, error: tError } = await supabase
-    .from('topicos')
-    .select('*');
+  // Função segura para carregar tópicos e comentários (adaptada ao seu schema)
+  async function loadTopicosAndComments() {
+    // 1) busca tópicos (select * para inspecionar colunas)
+    const { data: topicosData, error: tError } = await supabase
+      .from('topicos')
+      .select('*');
 
-  if (tError) {
-    console.error('Erro ao carregar tópicos (safe):', tError);
-    setTopicos([]);
-    setComentariosMap({});
-    return;
-  }
+    if (tError) {
+      console.error('Erro ao carregar tópicos (safe):', tError);
+      setTopicos([]);
+      setComentariosMap({});
+      return;
+    }
 
-  // normaliza topicos (usa conteudo como descricao)
-  const normalizedTopicos = (topicosData || []).map(t => ({
-    id: t.id,
-    titulo: t.titulo || t.title || '',
-    descricao: t.conteudo || t.descricao || t.body || '',
-    categoria_id: t.categoria_id || null,
-    imagem_url: t.imagem_url || null,
-    raw: t,
-  }));
-  // ordena localmente por id desc
-  normalizedTopicos.sort((a, b) => (b.id || 0) - (a.id || 0));
-  setTopicos(normalizedTopicos);
+    // 2) normaliza campos do tópico (usa conteudo como descricao)
+    const normalized = (topicosData || []).map(t => ({
+      id: t.id,
+      titulo: t.titulo || t.title || t.nome || '',
+      descricao: t.conteudo || t.descricao || t.body || '',
+      categoria_id: t.categoria_id ?? t.category_id ?? null,
+      imagem_url: t.imagem_url ?? t.image_url ?? null,
+      raw: t,
+    }));
 
-  // carrega comentários com select('*') e normaliza campos
-  const ids = (topicosData || []).map(t => t.id);
-  if (!ids.length) {
-    setComentariosMap({});
-    return;
-  }
+    // 3) ordena localmente por id desc (fallback se não houver created_at)
+    normalized.sort((a, b) => (b.id || 0) - (a.id || 0));
+    setTopicos(normalized);
 
-  const { data: comentariosData, error: cError } = await supabase
-    .from('comentarios')
-    .select('*')
-    .in('topico_id', ids);
+    // 4) carrega comentários (select * e normaliza)
+    const ids = (topicosData || []).map(t => t.id);
+    if (!ids.length) {
+      setComentariosMap({});
+      return;
+    }
 
-  if (cError) {
-    console.error('Erro ao carregar comentários (safe):', cError);
-    setComentariosMap({});
-    return;
-  }
+    const { data: comentariosData, error: cError } = await supabase
+      .from('comentarios')
+      .select('*')
+      .in('topico_id', ids);
 
-  // normaliza cada comentário para os campos que o front usa
-  const map = {};
-  (comentariosData || []).forEach(c => {
-    // detecta o campo de texto
-    const texto = c.texto ?? c.conteudo ?? c.mensagem ?? c.comment ?? c.body ?? c.text ?? null;
-    // detecta o campo de imagem
-    const imageUrl = c.image_url ?? c.imagem_url ?? c.foto_url ?? c.url ?? null;
-    // detecta topico_id (tenta variações)
-    const topicoId = c.topico_id ?? c.topic_id ?? c.topico ?? null;
-    // detecta user email
-    const userEmail = c.user_email ?? c.email ?? c.usuario_email ?? null;
-    // detecta created_at
-    const createdAt = c.created_at ?? c.criado_em ?? c.created ?? null;
+    if (cError) {
+      console.error('Erro ao carregar comentários (safe):', cError);
+      setComentariosMap({});
+      return;
+    }
 
-    const normalizedComment = {
-      id: c.id,
-      texto,
-      image_url: imageUrl,
-      topico_id: topicoId,
-      user_id: c.user_id ?? c.usuario_id ?? null,
-      user_email: userEmail,
-      created_at: createdAt,
-      raw: c,
-    };
+    // 5) normaliza comentários para o formato usado no front
+    const map = {};
+    (comentariosData || []).forEach(c => {
+      const texto = c.texto ?? c.conteudo ?? c.mensagem ?? c.comment ?? c.body ?? c.text ?? null;
+      const imageUrl = c.image_url ?? c.imagem_url ?? c.foto_url ?? c.url ?? null;
+      const topicoId = c.topico_id ?? c.topic_id ?? c.topico ?? null;
+      const userEmail = c.user_email ?? c.email ?? c.usuario_email ?? null;
+      const createdAt = c.created_at ?? c.criado_em ?? c.created ?? null;
 
-    if (!map[topicoId]) map[topicoId] = [];
-    map[topicoId].push(normalizedComment);
-  });
+      const normalizedComment = {
+        id: c.id,
+        texto,
+        image_url: imageUrl,
+        topico_id: topicoId,
+        user_id: c.user_id ?? c.usuario_id ?? null,
+        user_email: userEmail,
+        created_at: createdAt,
+        raw: c,
+      };
 
-  // opcional: ordenar comentários por created_at se existir, senão por id
-  Object.keys(map).forEach(k => {
-    map[k].sort((a, b) => {
-      const ta = a.created_at ? new Date(a.created_at).getTime() : a.id || 0;
-      const tb = b.created_at ? new Date(b.created_at).getTime() : b.id || 0;
-      return ta - tb;
+      if (!map[topicoId]) map[topicoId] = [];
+      map[topicoId].push(normalizedComment);
     });
-  });
 
-  setComentariosMap(map);
-}
+    // ordenar comentários por created_at se existir, senão por id
+    Object.keys(map).forEach(k => {
+      map[k].sort((a, b) => {
+        const ta = a.created_at ? new Date(a.created_at).getTime() : a.id || 0;
+        const tb = b.created_at ? new Date(b.created_at).getTime() : b.id || 0;
+        return ta - tb;
+      });
+    });
 
+    setComentariosMap(map);
+  }
 
-  // Upload de imagem para bucket 'comentarios'
+  // Upload de imagem para bucket 'comentarios' (crie esse bucket no Supabase Storage)
   async function uploadImage(file) {
     if (!file) return null;
     const ext = file.name.split('.').pop();
@@ -186,12 +182,11 @@ async function loadTopicosAndComments() {
       return;
     }
 
-    // limpar estado local e recarregar
-    setLocalComment(topicoId, { text: '', imageFile: null });
+    setLocalComment(topicoId, { text: '', imageFile: null, editingId: null });
     await loadTopicosAndComments();
   }
 
-  // Iniciar edição
+  // Iniciar edição de comentário
   function startEditComment(topicoId, comentario) {
     setLocalComment(topicoId, { text: comentario.texto || '', imageFile: null, editingId: comentario.id });
   }
@@ -237,7 +232,8 @@ async function loadTopicosAndComments() {
     if (!q) return true;
     const inTitle = (topico.titulo || '').toLowerCase().includes(q);
     const inDesc = (topico.descricao || '').toLowerCase().includes(q);
-    const inCat = (topico.categorias?.nome || '').toLowerCase().includes(q);
+    const inCat = (topico.raw?.categoria_nome || topico.raw?.categoria || '').toLowerCase().includes(q) ||
+                  (topico.raw?.categorias?.nome || '').toLowerCase().includes(q);
     const inComments = (comentariosMap[topico.id] || []).some(c =>
       (c.texto || '').toLowerCase().includes(q) ||
       (c.user_email || '').toLowerCase().includes(q)
@@ -287,7 +283,7 @@ async function loadTopicosAndComments() {
               <div key={topico.id} className="topico-card">
                 <div className="topico-header">
                   <h2 className="topico-titulo">{topico.titulo}</h2>
-                  <span className="categoria-tag">{topico.categorias?.nome || 'Sem categoria'}</span>
+                  <span className="categoria-tag">{topico.raw?.categoria_nome || topico.raw?.categorias?.nome || 'Sem categoria'}</span>
                 </div>
 
                 <p style={{ marginTop: 8, color: '#ddd' }}>{topico.descricao}</p>
@@ -298,13 +294,14 @@ async function loadTopicosAndComments() {
                   <ul>
                     {comentarios.length === 0 && <li style={{ background: 'transparent', color: '#999' }}>Sem comentários.</li>}
 
-                    {comentarios.map(c => (
+                    {/* Renderização dos comentários por tópico */}
+                    {(comentariosMap[topico.id] || []).map(c => (
                       <li key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ fontSize: 13, color: '#ffd700' }}>
                             <strong>{c.user_email || 'Anônimo'}</strong>
                             <span style={{ marginLeft: 8, color: '#aaa', fontSize: 12 }}>
-                              {new Date(c.created_at).toLocaleString()}
+                              {c.created_at ? new Date(c.created_at).toLocaleString() : ''}
                             </span>
                           </div>
 
