@@ -29,11 +29,17 @@ export default function Base() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, username')
         .eq('id', session.user.id)
         .single();
 
       if (profile?.role) setUserRole(profile.role);
+      if (profile?.username) {
+        setUser(prev => ({
+          ...prev,
+          username: profile.username
+        }));
+      }
     }
 
     await loadData();
@@ -70,21 +76,21 @@ export default function Base() {
   }
 
   function canModerate() {
-    return userRole === 'admin' || userRole === 'supervisor';
+    return ['admin', 'supervisor'].includes(userRole);
   }
 
   function setLocalComment(topicoId, patch) {
     setCommentState(prev => ({
       ...prev,
       [topicoId]: {
-        ...(prev[topicoId] || { text: '', imageFile: null }),
+        ...(prev[topicoId] || { text: '' }),
         ...patch
       }
     }));
   }
 
   // =========================
-  // CREATE COMMENT (APROVAÇÃO)
+  // CREATE COMMENT (APPROVAL)
   // =========================
   async function handleAddComment(topicoId) {
     const state = commentState[topicoId] || {};
@@ -99,7 +105,8 @@ export default function Base() {
       topico_id: Number(topicoId),
       usuario_id: user?.id || null,
       user_email: user?.email || null,
-      approved: isPrivileged ? true : false
+      username: user?.username || user?.email,
+      approved: isPrivileged
     });
 
     if (error) {
@@ -107,34 +114,51 @@ export default function Base() {
       return;
     }
 
+    // auditoria
+    await supabase.from('auditoria').insert({
+      acao: 'CRIAR_COMENTARIO',
+      entidade: 'comentarios',
+      usuario_id: user?.id,
+      usuario_email: user?.email,
+      status: isPrivileged ? 'approved' : 'pending'
+    });
+
     setLocalComment(topicoId, { text: '' });
+    await loadData();
+  }
+
+  // =========================
+  // APPROVE COMMENT
+  // =========================
+  async function approveComment(id) {
+    await supabase
+      .from('comentarios')
+      .update({ approved: true })
+      .eq('id', id);
+
+    await supabase.from('auditoria').insert({
+      acao: 'APROVAR_COMENTARIO',
+      entidade: 'comentarios',
+      usuario_id: user?.id,
+      usuario_email: user?.email,
+      payload: { comment_id: id }
+    });
+
     await loadData();
   }
 
   async function deleteComment(id) {
     await supabase.from('comentarios').delete().eq('id', id);
-    await loadData();
-  }
 
-  async function saveEditComment(topicoId) {
-    const state = commentState[topicoId];
-
-    if (!state?.editingId) return;
-
-    await supabase
-      .from('comentarios')
-      .update({ conteudo: state.text })
-      .eq('id', state.editingId);
-
-    setLocalComment(topicoId, { text: '', editingId: null });
-    await loadData();
-  }
-
-  function startEditComment(topicoId, comment) {
-    setLocalComment(topicoId, {
-      text: comment.conteudo,
-      editingId: comment.id
+    await supabase.from('auditoria').insert({
+      acao: 'EXCLUIR_COMENTARIO',
+      entidade: 'comentarios',
+      usuario_id: user?.id,
+      usuario_email: user?.email,
+      payload: { comment_id: id }
     });
+
+    await loadData();
   }
 
   function logout() {
@@ -143,7 +167,7 @@ export default function Base() {
   }
 
   // =========================
-  // FILTROS (SEGURANÇA)
+  // FILTER
   // =========================
   const isPrivileged = canModerate();
 
@@ -155,9 +179,6 @@ export default function Base() {
     )
     .filter(t =>
       !selectedCategoria || String(t.categoria_id) === String(selectedCategoria)
-    )
-    .filter(t =>
-      isPrivileged ? true : t.approved === true
     );
 
   return (
@@ -170,7 +191,9 @@ export default function Base() {
         </div>
 
         <div className="topbar-right">
-          <span className="user-email">{user?.email}</span>
+          <span className="user-email">
+            {user?.username || user?.email}
+          </span>
 
           <button onClick={() => window.location.href = '/dashboard'}>
             Menu
@@ -183,79 +206,104 @@ export default function Base() {
       </div>
 
       {/* SEARCH */}
-      <input
-        className="search-bar"
-        placeholder="Pesquisar tópicos, comentários, categorias..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
+      <div className="toolbar">
+        <input
+          className="search-bar"
+          placeholder="Pesquisar..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
 
-      {/* CATEGORIAS */}
-      <select
-        value={selectedCategoria}
-        onChange={e => setSelectedCategoria(e.target.value)}
-      >
-        <option value="">Todas categorias</option>
-        {categorias.map(c => (
-          <option key={c.id} value={c.id}>{c.nome}</option>
-        ))}
-      </select>
+        <div className="toolbar-row">
+          <select
+            value={selectedCategoria}
+            onChange={e => setSelectedCategoria(e.target.value)}
+          >
+            <option value="">Todas categorias</option>
+            {categorias.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* TOPICOS */}
-      {filteredTopicos.map(topico => {
-        const state = commentState[topico.id] || {};
+      <div className="content">
 
-        const comentariosRaw = comentariosMap[topico.id] || [];
+        {filteredTopicos.map(topico => {
+          const state = commentState[topico.id] || [];
 
-        const comentarios = isPrivileged
-          ? comentariosRaw
-          : comentariosRaw.filter(c => c.approved === true);
+          const comentariosRaw = comentariosMap[topico.id] || [];
 
-        return (
-          <div key={topico.id} className="topico-card">
+          const comentarios = isPrivileged
+            ? comentariosRaw
+            : comentariosRaw.filter(c => c.approved === true);
 
-            <h2>{topico.titulo}</h2>
-            <p>{topico.descricao}</p>
+          return (
+            <div key={topico.id} className="topico-card">
 
-            {/* COMENTÁRIOS */}
-            {comentarios.map(c => {
-              const isOwner = user?.id === c.usuario_id;
+              <h2>{topico.titulo}</h2>
 
-              return (
-                <div key={c.id} style={{ marginBottom: 10 }}>
-                  <strong>{c.user_email || 'Anônimo'}</strong>
-                  <p>{c.conteudo}</p>
+              <small>
+                {topico.user_email} •{' '}
+                {new Date(topico.created_at || Date.now()).toLocaleString()}
+              </small>
 
-                  {(isOwner || isPrivileged) && (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={() => startEditComment(topico.id, c)}>
-                        Editar
-                      </button>
-                      <button onClick={() => deleteComment(c.id)}>
-                        Excluir
-                      </button>
+              <p>{topico.descricao}</p>
+
+              {/* COMENTÁRIOS */}
+              <div className="comentarios">
+
+                {comentarios.map(c => {
+                  const isOwner = user?.id === c.usuario_id;
+
+                  return (
+                    <div key={c.id} style={{ marginBottom: 10 }}>
+
+                      <strong>
+                        {c.username || c.user_email || 'Anônimo'}
+                      </strong>
+
+                      <p>{c.conteudo}</p>
+
+                      {!c.approved && isPrivileged && (
+                        <button onClick={() => approveComment(c.id)}>
+                          Aprovar
+                        </button>
+                      )}
+
+                      {(isOwner || isPrivileged) && (
+                        <button onClick={() => deleteComment(c.id)}>
+                          Excluir
+                        </button>
+                      )}
+
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  );
+                })}
 
-            {/* INPUT */}
-            <textarea
-              value={state.text || ''}
-              onChange={e =>
-                setLocalComment(topico.id, { text: e.target.value })
-              }
-              placeholder="Escreva um comentário..."
-            />
+                {/* INPUT */}
+                <textarea
+                  value={state.text || ''}
+                  onChange={e =>
+                    setLocalComment(topico.id, { text: e.target.value })
+                  }
+                  placeholder="Escreva um comentário..."
+                />
 
-            <button onClick={() => handleAddComment(topico.id)}>
-              Enviar
-            </button>
+                <button onClick={() => handleAddComment(topico.id)}>
+                  Enviar
+                </button>
 
-          </div>
-        );
-      })}
+              </div>
+
+            </div>
+          );
+        })}
+
+      </div>
     </div>
   );
 }
