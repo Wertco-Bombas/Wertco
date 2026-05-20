@@ -21,7 +21,10 @@ export default function Login() {
   }
 
   return (
-    <div className="login-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+    <div 
+      className="login-container" 
+      style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}
+    >
       <form 
         onSubmit={handleLogin} 
         className="formStack card" 
@@ -48,10 +51,6 @@ export default function Login() {
         {error && <p style={{ color: '#ff6b47', fontWeight: 'bold' }}>{error}</p>}
 
         <button type="submit" className="btn btnYellow">Entrar</button>
-
-        <p style={{ marginTop: '10px', textAlign: 'center' }}>
-          Não tem conta? <a href="/signup" style={{ color: '#0070f3' }}>Cadastre-se</a>
-        </p>
       </form>
     </div>
   )
