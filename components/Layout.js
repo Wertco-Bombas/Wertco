@@ -57,11 +57,11 @@ export default function Layout({ children }) {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <header className="bg-gray-800 shadow-md">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center">
+          {/* Logo e botões da rota /base */}
           <div className="flex items-center gap-4">
             <div className="text-2xl font-bold">Wertco</div>
 
-            {/* Botões só aparecem na rota /base */}
             {router.pathname === '/base' && (
               <nav className="flex gap-3">
                 <Link href="/novo-topico">
@@ -83,7 +83,7 @@ export default function Layout({ children }) {
             )}
           </div>
 
-          {/* Informações do usuário e botões */}
+          {/* Informações do usuário e botões, alinhados à direita */}
           {router.pathname !== '/login' && (
             <div className="flex items-center gap-3 ml-auto">
               {userEmail ? (
