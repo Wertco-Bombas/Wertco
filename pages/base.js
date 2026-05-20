@@ -3,81 +3,80 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export default function Base() {
-  const [topics, setTopics] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [topicos, setTopicos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [comment, setComment] = useState('');
-  const [image, setImage] = useState(null);
-  const [editingComment, setEditingComment] = useState(null);
-  const [comments, setComments] = useState([]);
+  const [selectedCategoria, setSelectedCategoria] = useState('');
+  const [comentario, setComentario] = useState('');
+  const [imagem, setImagem] = useState(null);
+  const [editingComentario, setEditingComentario] = useState(null);
+  const [comentarios, setComentarios] = useState([]);
 
   // Carregar tópicos e categorias
   useEffect(() => {
     async function loadData() {
-      const { data: topicsData } = await supabase
-        .from('topics')
-        .select('id, title, description, category_id, categories(name)')
+      const { data: topicosData } = await supabase
+        .from('topicos')
+        .select('id, titulo, descricao, categoria_id, categorias(nome)')
         .order('created_at', { ascending: false });
 
-      const { data: categoriesData } = await supabase
-        .from('categories')
+      const { data: categoriasData } = await supabase
+        .from('categorias')
         .select('*')
-        .order('name');
+        .order('nome');
 
-      setTopics(topicsData || []);
-      setCategories(categoriesData || []);
+      setTopicos(topicosData || []);
+      setCategorias(categoriasData || []);
     }
     loadData();
   }, []);
 
   // Carregar comentários
-  async function loadComments(topicId) {
+  async function loadComentarios(topicoId) {
     const { data } = await supabase
-      .from('comments')
+      .from('comentarios')
       .select('*')
-      .eq('topic_id', topicId)
+      .eq('topico_id', topicoId)
       .order('created_at', { ascending: false });
-    setComments(data || []);
+    setComentarios(data || []);
   }
 
   // Adicionar comentário
-  async function handleAddComment(topicId) {
-    if (!comment) return;
+  async function handleAddComentario(topicoId) {
+    if (!comentario) return;
 
-    const { error } = await supabase.from('comments').insert([
+    const { error } = await supabase.from('comentarios').insert([
       {
-        text: comment,
-        topic_id: topicId,
-        image_url: image ? image.name : null,
+        texto: comentario,
+        topico_id: topicoId,
+        imagem_url: imagem ? imagem.name : null,
       },
     ]);
 
     if (!error) {
-      setComment('');
-      setImage(null);
-      loadComments(topicId);
+      setComentario('');
+      setImagem(null);
+      loadComentarios(topicoId);
     }
   }
 
   // Editar comentário
-  async function handleEditComment(commentId) {
+  async function handleEditComentario(comentarioId) {
     const { error } = await supabase
-      .from('comments')
-      .update({ text: comment })
-      .eq('id', commentId);
+      .from('comentarios')
+      .update({ texto: comentario })
+      .eq('id', comentarioId);
 
     if (!error) {
-      setEditingComment(null);
-      setComment('');
-      loadComments();
+      setEditingComentario(null);
+      setComentario('');
     }
   }
 
   // Excluir comentário
-  async function handleDeleteComment(commentId, topicId) {
-    const { error } = await supabase.from('comments').delete().eq('id', commentId);
-    if (!error) loadComments(topicId);
+  async function handleDeleteComentario(comentarioId, topicoId) {
+    const { error } = await supabase.from('comentarios').delete().eq('id', comentarioId);
+    if (!error) loadComentarios(topicoId);
   }
 
   return (
@@ -96,12 +95,12 @@ export default function Base() {
       {/* Filtro + Botões */}
       <div className="actions">
         <select
-          value={selectedCategory}
-          onChange={e => setSelectedCategory(e.target.value)}
+          value={selectedCategoria}
+          onChange={e => setSelectedCategoria(e.target.value)}
         >
           <option value="">Todas as categorias</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          {categorias.map(cat => (
+            <option key={cat.id} value={cat.id}>{cat.nome}</option>
           ))}
         </select>
 
@@ -113,37 +112,39 @@ export default function Base() {
       </div>
 
       {/* Lista de tópicos */}
-      {topics
+      {topicos
         .filter(t =>
           (!search ||
-            t.title.toLowerCase().includes(search.toLowerCase()) ||
-            t.description.toLowerCase().includes(search.toLowerCase()) ||
-            t.categories?.name?.toLowerCase().includes(search.toLowerCase())) &&
-          (!selectedCategory || t.category_id === selectedCategory)
+            t.titulo.toLowerCase().includes(search.toLowerCase()) ||
+            t.descricao.toLowerCase().includes(search.toLowerCase()) ||
+            t.categorias?.nome?.toLowerCase().includes(search.toLowerCase())) &&
+          (!selectedCategoria || t.categoria_id === selectedCategoria)
         )
-        .map(topic => (
-          <div key={topic.id} className="topico-card">
+        .map(topico => (
+          <div key={topico.id} className="topico-card">
             <div className="topico-header">
-              <h2 className="topico-titulo">{topic.title}</h2>
-              <span className="categoria-tag">{topic.categories?.name || 'Sem categoria'}</span>
+              <h2 className="topico-titulo">{topico.titulo}</h2>
+              <span className="categoria-tag">{topico.categorias?.nome || 'Sem categoria'}</span>
             </div>
-            <p>{topic.description}</p>
+            <p>{topico.descricao}</p>
 
             {/* Comentários */}
             <div className="comentarios">
               <h3>Comentários</h3>
               <ul>
-                {comments
-                  .filter(c => c.topic_id === topic.id)
+                {comentarios
+                  .filter(c => c.topico_id === topico.id)
                   .map(c => (
                     <li key={c.id}>
                       <div>
-                        <strong>{c.user_email}</strong> — {c.text}
+                        <strong>{c.user_email || 'Usuário'}</strong> — {c.texto}
                       </div>
-                      {c.image_url && <img src={c.image_url} alt="Comentário" style={{ maxWidth: '150px', marginTop: '5px' }} />}
-                      <div className="flex gap-2 mt-2">
-                        <button onClick={() => { setEditingComment(c.id); setComment(c.text); }}>Editar</button>
-                        <button onClick={() => handleDeleteComment(c.id, topic.id)}>Excluir</button>
+                      {c.imagem_url && (
+                        <img src={c.imagem_url} alt="Comentário" style={{ maxWidth: '150px', marginTop: '5px' }} />
+                      )}
+                      <div className="comentario-input">
+                        <button onClick={() => { setEditingComentario(c.id); setComentario(c.texto); }}>Editar</button>
+                        <button onClick={() => handleDeleteComentario(c.id, topico.id)}>Excluir</button>
                       </div>
                     </li>
                   ))}
@@ -153,14 +154,14 @@ export default function Base() {
               <div className="comentario-input">
                 <textarea
                   placeholder="Adicionar comentário..."
-                  value={comment}
-                  onChange={e => setComment(e.target.value)}
+                  value={comentario}
+                  onChange={e => setComentario(e.target.value)}
                 />
                 <input
                   type="file"
-                  onChange={e => setImage(e.target.files[0])}
+                  onChange={e => setImagem(e.target.files[0])}
                 />
-                <button onClick={() => handleAddComment(topic.id)}>Enviar</button>
+                <button onClick={() => handleAddComentario(topico.id)}>Enviar</button>
               </div>
             </div>
           </div>
