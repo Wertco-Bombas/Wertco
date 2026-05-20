@@ -100,35 +100,49 @@ export default function Base() {
       });
     }
 
-    try {
-      const response = await fetch('/api/comentarios/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          conteudo: text,
-          topico_id: Number(topicoId),
-          usuario_id: user?.id || null,
-          usuario_email: user?.email || null,
-          imagem_base64: imageBase64
-        })
+    const { error } = await supabase
+      .from('comentarios')
+      .insert({
+        conteudo: text,
+        topico_id: Number(topicoId),
+        usuario_id: user?.id || null,
+        usuario_email: user?.email || null,
+        imagem_base64: imageBase64
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(data.error || 'Erro ao salvar comentário');
-        return;
-      }
-
-      setLocalComment(topicoId, { text: '', imageFile: null });
-      await loadData();
-
-    } catch (err) {
-      console.error(err);
-      alert('Erro inesperado ao salvar comentário');
+    if (error) {
+      alert(error.message);
+      return;
     }
+
+    setLocalComment(topicoId, { text: '', imageFile: null });
+    await loadData();
+  }
+
+  async function deleteComment(id) {
+    await supabase.from('comentarios').delete().eq('id', id);
+    await loadData();
+  }
+
+  async function saveEditComment(topicoId) {
+    const state = commentState[topicoId];
+
+    if (!state?.editingId) return;
+
+    await supabase
+      .from('comentarios')
+      .update({ conteudo: state.text })
+      .eq('id', state.editingId);
+
+    setLocalComment(topicoId, { text: '', editingId: null });
+    await loadData();
+  }
+
+  function startEditComment(topicoId, comment) {
+    setLocalComment(topicoId, {
+      text: comment.conteudo,
+      editingId: comment.id
+    });
   }
 
   function logout() {
@@ -157,10 +171,14 @@ export default function Base() {
 
         <div className="topbar-right">
           <span className="user-email">{user?.email}</span>
-         <button onClick={() => window.location.href = '/dashboard'}>
-  Menu
-</button>
-          <button onClick={logout}>Sair</button>
+
+          <button onClick={() => window.location.href = '/dashboard'}>
+            Menu
+          </button>
+
+          <button onClick={logout}>
+            Sair
+          </button>
         </div>
       </div>
 
@@ -233,12 +251,39 @@ export default function Base() {
 
                 <h3>Comentários</h3>
 
-                {comentarios.map(c => (
-                  <div key={c.id} style={{ marginBottom: 10 }}>
-                    <strong>{c.usuario_email}</strong>
-                    <p>{c.conteudo}</p>
-                  </div>
-                ))}
+                {comentarios.map(c => {
+                  const isOwner = user?.id === c.usuario_id;
+
+                  return (
+                    <div key={c.id} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid #333' }}>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <strong>{c.usuario_email || 'Anônimo'}</strong>
+
+                        <span style={{ fontSize: 11, color: '#888' }}>
+                          {c.created_at
+                            ? new Date(c.created_at).toLocaleString()
+                            : 'sem data'}
+                        </span>
+                      </div>
+
+                      <p style={{ marginTop: 5 }}>{c.conteudo}</p>
+
+                      {isOwner && (
+                        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                          <button onClick={() => startEditComment(topico.id, c)}>
+                            Editar
+                          </button>
+
+                          <button onClick={() => deleteComment(c.id)}>
+                            Excluir
+                          </button>
+                        </div>
+                      )}
+
+                    </div>
+                  );
+                })}
 
                 {/* INPUT */}
                 <div className="comentario-input">
@@ -258,9 +303,15 @@ export default function Base() {
                     }
                   />
 
-                  <button className="btn btnYellow" onClick={() => handleAddComment(topico.id)}>
-                    Enviar
-                  </button>
+                  {state.editingId ? (
+                    <button className="btn btnYellow" onClick={() => saveEditComment(topico.id)}>
+                      Salvar edição
+                    </button>
+                  ) : (
+                    <button className="btn btnYellow" onClick={() => handleAddComment(topico.id)}>
+                      Enviar
+                    </button>
+                  )}
 
                 </div>
 
