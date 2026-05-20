@@ -84,37 +84,35 @@ export default function Base() {
     }));
   }
 
+  // ==============================
+  // CORRIGIDO 100%
+  // ==============================
   async function handleAddComment(topicoId) {
     const state = commentState[topicoId] || {};
     const text = (state.text || '').trim();
 
     if (!text) return alert('Digite um comentário');
 
-    let imageBase64 = null;
-
-    if (state.imageFile) {
-      imageBase64 = await new Promise(resolve => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.readAsDataURL(state.imageFile);
-      });
-    }
-
-const payload = {
-  conteudo: text,
-  topico_id: Number(topicoId),
-  usuario_id: user?.id || null,
-  usuario_email: user?.email || null
-
+    try {
+      const { error } = await supabase.from('comentarios').insert({
+        conteudo: text,
+        topico_id: Number(topicoId),
+        usuario_id: user?.id || null,
+        usuario_email: user?.email || null
       });
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+      if (error) {
+        alert(error.message);
+        return;
+      }
 
-    setLocalComment(topicoId, { text: '', imageFile: null });
-    await loadData();
+      setLocalComment(topicoId, { text: '', imageFile: null });
+      await loadData();
+
+    } catch (err) {
+      console.error(err);
+      alert('Erro inesperado ao salvar comentário');
+    }
   }
 
   async function deleteComment(id) {
@@ -294,22 +292,9 @@ const payload = {
                     placeholder="Escreva um comentário..."
                   />
 
-                  <input
-                    type="file"
-                    onChange={e =>
-                      setLocalComment(topico.id, { imageFile: e.target.files[0] })
-                    }
-                  />
-
-                  {state.editingId ? (
-                    <button className="btn btnYellow" onClick={() => saveEditComment(topico.id)}>
-                      Salvar edição
-                    </button>
-                  ) : (
-                    <button className="btn btnYellow" onClick={() => handleAddComment(topico.id)}>
-                      Enviar
-                    </button>
-                  )}
+                  <button className="btn btnYellow" onClick={() => handleAddComment(topico.id)}>
+                    Enviar
+                  </button>
 
                 </div>
 
