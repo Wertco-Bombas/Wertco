@@ -8,73 +8,63 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      error: 'Method not allowed'
-    });
-  }
-
   try {
-    const {
-      conteudo,
-      topico_id,
-      usuario_id,
-      usuario_email,
-      imagem_base64
-    } = req.body;
 
-    console.log('BODY RECEBIDO:', req.body);
+    if (req.method !== 'POST') {
+      return res.status(405).json({
+        error: 'Método não permitido'
+      });
+    }
 
-    // Validação
-    if (!conteudo && !imagem_base64) {
+    console.log('BODY COMPLETO:', req.body);
+
+    // GARANTE QUE O BODY EXISTE
+    const body = req.body || {};
+
+    // PEGA OS CAMPOS
+    const conteudo =
+      typeof body.conteudo === 'string'
+        ? body.conteudo.trim()
+        : '';
+
+    const topico_id = Number(body.topico_id);
+
+    const usuario_id = body.usuario_id || null;
+
+    const user_email = body.usuario_email || null;
+
+    // DEBUG
+    console.log('CONTEUDO:', conteudo);
+    console.log('TOPICO:', topico_id);
+
+    // VALIDAÇÕES
+    if (!conteudo) {
       return res.status(400).json({
-        error: 'Conteúdo ou imagem são obrigatórios'
+        error: 'Conteúdo vazio'
       });
     }
 
     if (!topico_id) {
       return res.status(400).json({
-        error: 'Tópico é obrigatório'
+        error: 'Tópico inválido'
       });
     }
 
-    // Verifica se o tópico existe
-    const { data: topico, error: topicoError } = await supabase
-      .from('topicos')
-      .select('id')
-      .eq('id', topico_id)
-      .maybeSingle();
-
-    if (topicoError) {
-      console.error(topicoError);
-
-      return res.status(500).json({
-        error: topicoError.message
-      });
-    }
-
-    if (!topico) {
-      return res.status(400).json({
-        error: `Tópico com id ${topico_id} não existe`
-      });
-    }
-
-    // Inserção
+    // INSERT
     const { data, error } = await supabase
       .from('comentarios')
       .insert([
         {
-          conteudo: conteudo || null,
+          conteudo,
           topico_id,
-          usuario_id: usuario_id || null,
-          user_email: usuario_email || null,
-          imagem_base64: imagem_base64 || null
+          usuario_id,
+          user_email
         }
       ])
       .select();
 
     if (error) {
-      console.error('ERRO SUPABASE:', error);
+      console.error('ERRO INSERT:', error);
 
       return res.status(500).json({
         error: error.message
@@ -83,14 +73,15 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ok: true,
-      comentario: data
+      data
     });
 
   } catch (err) {
+
     console.error('ERRO GERAL:', err);
 
     return res.status(500).json({
-      error: err.message || 'Erro interno do servidor'
+      error: err.message
     });
   }
 }
