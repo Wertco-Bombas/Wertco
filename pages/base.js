@@ -42,9 +42,7 @@ export default function Base() {
       },
     ]);
 
-    if (error) {
-      console.error('Erro ao salvar comentário:', error);
-    } else {
+    if (!error) {
       setComment('');
       setImage(null);
       alert('Comentário enviado com sucesso!');
@@ -78,7 +76,7 @@ export default function Base() {
       {/* Barra de pesquisa */}
       <input
         type="text"
-        placeholder="Pesquisar tópicos..."
+        placeholder="Pesquisar em toda a base..."
         className="formInput mt-4"
         value={search}
         onChange={e => setSearch(e.target.value)}
@@ -114,7 +112,8 @@ export default function Base() {
       <div className="grid gap-4 mt-6">
         {topics
           .filter(t =>
-            (!search || t.title.toLowerCase().includes(search.toLowerCase())) &&
+            (!search || t.title.toLowerCase().includes(search.toLowerCase()) || 
+             t.description.toLowerCase().includes(search.toLowerCase())) &&
             (!selectedCategory || t.category_id === selectedCategory)
           )
           .map(topic => (
@@ -158,8 +157,8 @@ export default function Base() {
 
               {/* Exemplo de comentários renderizados */}
               <div className="mt-4">
-                {/* Aqui você renderizaria os comentários do Supabase */}
                 <p className="text-sm text-gray-400">Comentários aparecerão aqui...</p>
+                {/* Aqui você renderizaria os comentários do Supabase e adicionaria botões de editar/excluir */}
               </div>
             </div>
           ))}
