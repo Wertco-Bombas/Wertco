@@ -1,9 +1,10 @@
 // pages/usuario.js
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
 
-// ✅ PERMISSÃO LOCAL (SIMPLES E DIRETO)
+// 🔐 PERMISSÃO LOCAL
 function canAccess(role, allowed) {
   return allowed.includes(role);
 }
@@ -15,18 +16,19 @@ const supabase = createClient(
 
 export default function Usuario() {
   const [usuarios, setUsuarios] = useState([]);
+  const [usuariosBase, setUsuariosBase] = useState([]); // 👈 base original (IMPORTANTE)
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const router = useRouter();
 
-  // 🔐 checar role do usuário logado
+  // 🔐 checar permissões
   async function checkRole() {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session?.user) {
       router.push('/login');
-      return;
+      return false;
     }
 
     const { data } = await supabase
@@ -38,14 +40,18 @@ export default function Usuario() {
     const role = data?.role || 'user';
     setUserRole(role);
 
-    // 🚫 BLOQUEIO DE ACESSO
     if (!canAccess(role, ['admin', 'supervisor'])) {
       router.push('/dashboard');
+      return false;
     }
+
+    return true;
   }
 
+  // 🔥 LISTAR USUÁRIOS
   async function fetchUsers() {
     setLoading(true);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -62,9 +68,13 @@ export default function Usuario() {
       if (!resp.ok) {
         alert('Erro ao listar usuários: ' + (json?.error || resp.statusText));
         setUsuarios([]);
+        setUsuariosBase([]);
       } else {
-        setUsuarios(json.users || []);
+        const users = json.users || [];
+        setUsuarios(users);
+        setUsuariosBase(users); // 👈 guarda base original
       }
+
     } catch (err) {
       alert(err.message);
     } finally {
@@ -74,11 +84,29 @@ export default function Usuario() {
 
   useEffect(() => {
     (async () => {
-      await checkRole();
-      await fetchUsers();
+      const ok = await checkRole();
+      if (ok) await fetchUsers();
     })();
   }, []);
 
+  // 🔍 SEARCH CORRIGIDO
+  function handleSearch(value) {
+    const q = value.toLowerCase();
+
+    if (!q) {
+      setUsuarios(usuariosBase);
+      return;
+    }
+
+    const filtered = usuariosBase.filter(u =>
+      (u.email || '').toLowerCase().includes(q) ||
+      (u.username || '').toLowerCase().includes(q)
+    );
+
+    setUsuarios(filtered);
+  }
+
+  // 🗑 DELETE USER
   async function handleExcluir(userId) {
     if (!confirm('Confirma exclusão deste usuário?')) return;
 
@@ -104,6 +132,7 @@ export default function Usuario() {
       } else {
         await fetchUsers();
       }
+
     } catch (err) {
       alert(err.message);
     } finally {
@@ -111,7 +140,7 @@ export default function Usuario() {
     }
   }
 
-  // 🔐 proteção visual (evita flash de conteúdo)
+  // 🔐 proteção visual
   if (!canAccess(userRole, ['admin', 'supervisor'])) {
     return <div style={{ padding: 20 }}>Verificando permissões...</div>;
   }
@@ -127,22 +156,15 @@ export default function Usuario() {
 
         <div className="card">
 
+          {/* SEARCH + BUTTON */}
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
 
             <input
               type="text"
-              placeholder="Pesquisar usuário..."
+              placeholder="Pesquisar usuário por email ou username..."
               className="search-bar"
               style={{ maxWidth: 420 }}
-              onChange={(e) => {
-                const q = e.target.value.toLowerCase();
-                if (!q) return fetchUsers();
-                setUsuarios(prev =>
-                  prev.filter(u =>
-                    (u.email || '').toLowerCase().includes(q)
-                  )
-                );
-              }}
+              onChange={(e) => handleSearch(e.target.value)}
             />
 
             <button
@@ -154,6 +176,7 @@ export default function Usuario() {
 
           </div>
 
+          {/* TABLE */}
           <div style={{ marginTop: 18 }}>
 
             {loading ? (
@@ -164,7 +187,7 @@ export default function Usuario() {
               <table style={{ width: '100%' }}>
                 <thead>
                   <tr>
-                    <th>Email</th>
+                    <th>Email / Username</th>
                     <th>Função</th>
                     <th>Criado em</th>
                     <th>Ações</th>
@@ -174,7 +197,9 @@ export default function Usuario() {
                 <tbody>
                   {usuarios.map(u => (
                     <tr key={u.id}>
-                      <td>{u.email || u.username}</td>
+                      <td>
+                        {u.username || u.email || '(sem identificação)'}
+                      </td>
                       <td>{u.role || 'user'}</td>
                       <td>
                         {u.created_at
