@@ -12,7 +12,6 @@ export default function Auditoria() {
   useEffect(() => {
     load();
 
-    // 🔥 realtime auditoria
     const channel = supabase
       .channel('auditoria-realtime')
       .on(
@@ -24,9 +23,7 @@ export default function Auditoria() {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, []);
 
   async function load() {
@@ -60,10 +57,13 @@ export default function Auditoria() {
     setLogs(data || []);
   }
 
-  // supervisor vê só pendências (se quiser usar isso depois)
+  // ================================
+  // CORREÇÃO PRINCIPAL AQUI
+  // ================================
+
   const filteredLogs =
     userRole === 'supervisor'
-      ? logs.filter(l => l.tipo !== 'system') // ajuste simples
+      ? logs.filter(l => l.status === 'pending')   // 🔥 CORRETO
       : logs;
 
   return (
@@ -84,13 +84,33 @@ export default function Auditoria() {
           }}
         >
           <strong>{log.acao}</strong>
+
           <p>{log.entidade}</p>
+
           <small>
             {log.usuario_email} •{' '}
             {log.created_at
               ? new Date(log.created_at).toLocaleString()
               : ''}
           </small>
+
+          {log.status && (
+            <div style={{
+              display: 'inline-block',
+              padding: '2px 8px',
+              marginTop: 5,
+              borderRadius: 4,
+              fontSize: 12,
+              background:
+                log.status === 'pending'
+                  ? '#ffcc00'
+                  : log.status === 'approved'
+                  ? '#00cc66'
+                  : '#666'
+            }}>
+              {log.status}
+            </div>
+          )}
 
           {log.payload && (
             <pre style={{ fontSize: 11, color: '#999' }}>
