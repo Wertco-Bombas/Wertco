@@ -36,22 +36,22 @@ export default function Base() {
       if (profile?.role) setUserRole(profile.role);
     }
 
-    await loadAll();
+    await loadData();
   }
 
-  async function loadAll() {
+  async function loadData() {
     const { data: cats } = await supabase.from('categorias').select('*');
     setCategorias(cats || []);
 
     const { data: tops } = await supabase.from('topicos').select('*');
 
-    const normalized = (tops || []).map(t => ({
+    const normalizedTopicos = (tops || []).map(t => ({
       ...t,
       titulo: t.titulo || '',
       descricao: t.conteudo || '',
     }));
 
-    setTopicos(normalized);
+    setTopicos(normalizedTopicos);
 
     const ids = (tops || []).map(t => t.id);
 
@@ -74,10 +74,13 @@ export default function Base() {
     return userRole === 'admin' || userRole === 'supervisor';
   }
 
-  function setLocalComment(id, patch) {
+  function setLocalComment(topicoId, patch) {
     setCommentState(prev => ({
       ...prev,
-      [id]: { ...(prev[id] || {}), ...patch }
+      [topicoId]: {
+        ...(prev[topicoId] || { text: '', imageFile: null }),
+        ...patch
+      }
     }));
   }
 
@@ -87,19 +90,45 @@ export default function Base() {
 
     if (!text) return alert('Digite um comentário');
 
-    await fetch('/api/comentarios/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        conteudo: text,
-        topico_id: topicoId,
-        usuario_id: user?.id,
-        usuario_email: user?.email
-      })
-    });
+    let imageBase64 = null;
 
-    setLocalComment(topicoId, { text: '' });
-    await loadAll();
+    if (state.imageFile) {
+      imageBase64 = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(state.imageFile);
+      });
+    }
+
+    try {
+      const response = await fetch('/api/comentarios/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          conteudo: text,
+          topico_id: Number(topicoId),
+          usuario_id: user?.id || null,
+          usuario_email: user?.email || null,
+          imagem_base64: imageBase64
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Erro ao salvar comentário');
+        return;
+      }
+
+      setLocalComment(topicoId, { text: '', imageFile: null });
+      await loadData();
+
+    } catch (err) {
+      console.error(err);
+      alert('Erro inesperado ao salvar comentário');
+    }
   }
 
   function logout() {
@@ -114,117 +143,125 @@ export default function Base() {
       t.descricao.toLowerCase().includes(search.toLowerCase())
     )
     .filter(t =>
-      !selectedCategoria || String(t.categoria_id) === selectedCategoria
+      !selectedCategoria || String(t.categoria_id) === String(selectedCategoria)
     );
 
   return (
-    <div style={{ padding: 20 }}>
+    <div className="base-container">
 
       {/* TOP BAR */}
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <div />
+      <div className="topbar">
+        <div className="topbar-left">
+          <h2>Wertco</h2>
+        </div>
 
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span>{user?.email}</span>
+        <div className="topbar-right">
+          <span className="user-email">{user?.email}</span>
           <button onClick={() => alert('menu')}>Menu</button>
           <button onClick={logout}>Sair</button>
         </div>
       </div>
 
-      {/* SEARCH */}
-      <div style={{ marginTop: 20 }}>
+      {/* SEARCH + FILTER */}
+      <div className="toolbar">
+
         <input
-          style={{ width: '100%', padding: 10 }}
-          placeholder="Pesquisar tudo..."
+          className="search-bar"
+          placeholder="Pesquisar tópicos, comentários, categorias..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-      </div>
 
-      {/* FILTER BAR */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        marginTop: 15,
-        alignItems: 'center'
-      }}>
+        <div className="toolbar-row">
 
-        <select
-          value={selectedCategoria}
-          onChange={e => setSelectedCategoria(e.target.value)}
-        >
-          <option value="">Todas categorias</option>
-          {categorias.map(c => (
-            <option key={c.id} value={c.id}>{c.nome}</option>
-          ))}
-        </select>
+          <select
+            value={selectedCategoria}
+            onChange={e => setSelectedCategoria(e.target.value)}
+          >
+            <option value="">Todas categorias</option>
+            {categorias.map(c => (
+              <option key={c.id} value={c.id}>{c.nome}</option>
+            ))}
+          </select>
 
-        {canModerate() && (
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => window.location.href = '/novo-topico'}>
-              + Novo Tópico
-            </button>
-            <button onClick={() => window.location.href = '/nova-categoria'}>
-              + Nova Categoria
-            </button>
-            <button onClick={() => alert('excluir categoria')}>
-              Excluir Categoria
-            </button>
-          </div>
-        )}
+          {canModerate() && (
+            <div className="toolbar-buttons">
+              <button onClick={() => window.location.href = '/novo-topico'}>
+                + Novo Tópico
+              </button>
+              <button onClick={() => window.location.href = '/nova-categoria'}>
+                + Nova Categoria
+              </button>
+              <button>
+                Excluir Categoria
+              </button>
+            </div>
+          )}
+
+        </div>
       </div>
 
       {/* TOPICOS */}
-      <div style={{ marginTop: 30 }}>
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-        {filteredTopicos.map(t => {
-          const comentarios = comentariosMap[t.id] || [];
+        {filteredTopicos.map(topico => {
+          const state = commentState[topico.id] || {};
+          const comentarios = comentariosMap[topico.id] || [];
 
           return (
-            <div key={t.id} style={{
-              border: '1px solid #444',
-              padding: 15,
-              marginBottom: 20
-            }}>
+            <div key={topico.id} className="topico-card">
 
-              <h2>{t.titulo}</h2>
+              <div className="topico-header">
+                <h2 className="topico-titulo">{topico.titulo}</h2>
 
-              <small>
-                Categoria: {categorias.find(c => c.id === t.categoria_id)?.nome || 'N/A'} <br />
-                Criado por: {t.user_email || 'desconhecido'} <br />
-                Data: {new Date(t.created_at || Date.now()).toLocaleString()}
+                <span className="categoria-tag">
+                  {categorias.find(c => c.id === topico.categoria_id)?.nome || 'Sem categoria'}
+                </span>
+              </div>
+
+              <small style={{ color: '#aaa' }}>
+                {topico.user_email || 'Autor desconhecido'} •{' '}
+                {new Date(topico.created_at || Date.now()).toLocaleString()}
               </small>
 
-              <p>{t.descricao}</p>
+              <p style={{ marginTop: 10 }}>{topico.descricao}</p>
 
-              {/* COMMENTS */}
-              <div style={{ marginTop: 15 }}>
-                <h4>Comentários</h4>
+              {/* COMENTÁRIOS */}
+              <div className="comentarios">
+
+                <h3>Comentários</h3>
 
                 {comentarios.map(c => (
                   <div key={c.id} style={{ marginBottom: 10 }}>
-                    <strong>{c.user_email}</strong>
-
-                    {canModerate() && !c.approved && (
-                      <span style={{ marginLeft: 10, color: 'orange' }}>
-                        (pendente)
-                      </span>
-                    )}
-
+                    <strong>{c.usuario_email}</strong>
                     <p>{c.conteudo}</p>
                   </div>
                 ))}
 
-                {/* ADD COMMENT */}
-                <textarea
-                  style={{ width: '100%', marginTop: 10 }}
-                  value={commentState[t.id]?.text || ''}
-                  onChange={e => setLocalComment(t.id, { text: e.target.value })}
-                />
+                {/* INPUT */}
+                <div className="comentario-input">
 
-                <button onClick={() => handleAddComment(t.id)}>
-                  Comentar
-                </button>
+                  <textarea
+                    value={state.text || ''}
+                    onChange={e =>
+                      setLocalComment(topico.id, { text: e.target.value })
+                    }
+                    placeholder="Escreva um comentário..."
+                  />
+
+                  <input
+                    type="file"
+                    onChange={e =>
+                      setLocalComment(topico.id, { imageFile: e.target.files[0] })
+                    }
+                  />
+
+                  <button className="btn btnYellow" onClick={() => handleAddComment(topico.id)}>
+                    Enviar
+                  </button>
+
+                </div>
+
               </div>
 
             </div>
