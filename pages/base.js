@@ -96,10 +96,10 @@ export default function Base() {
     try {
       const { error } = await supabase.from('comentarios').insert({
         conteudo: text,
-        topico_id: Number(topicoId),
-        usuario_id: user?.id || null,
-        user_email: user?.email || null
-      });
+  topico_id: Number(topicoId),
+  usuario_id: user?.id || null,
+  user_email: user?.email || null
+});
 
       if (error) {
         alert(error.message);
