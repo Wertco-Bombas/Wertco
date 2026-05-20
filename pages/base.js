@@ -105,7 +105,7 @@ const payload = {
   topico_id: Number(topicoId),
   usuario_id: user?.id || null,
   usuario_email: user?.email || null
-};
+
       });
 
     if (error) {
