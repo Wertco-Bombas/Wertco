@@ -49,7 +49,6 @@ export default function Base() {
       ...t,
       titulo: t.titulo || '',
       descricao: t.conteudo || '',
-      approved: t.approved ?? true
     }));
 
     setTopicos(normalizedTopicos);
@@ -65,63 +64,63 @@ export default function Base() {
 
     (coms || []).forEach(c => {
       if (!map[c.topico_id]) map[c.topico_id] = [];
-
-      map[c.topico_id].push({
-        id: c.id,
-        conteudo: c.conteudo,
-        usuario_id: c.usuario_id,
-        usuario_email: c.user_email || 'Anônimo',
-        created_at: c.created_at,
-        approved: c.approved ?? true
-      });
+      map[c.topico_id].push(c);
     });
 
     setComentariosMap(map);
   }
 
   function canModerate() {
-    return userRole === 'admin' || userRole === 'supervisor';
+    return ['admin', 'supervisor'].includes(userRole);
   }
 
   function setLocalComment(topicoId, patch) {
     setCommentState(prev => ({
       ...prev,
       [topicoId]: {
-        ...(prev[topicoId] || { text: '' }),
+        ...(prev[topicoId] || { text: '', imageFile: null }),
         ...patch
       }
     }));
   }
 
-  // =========================
-  // CRIAR COMENTÁRIO
-  // =========================
+  // ============================
+  // COMENTÁRIO COM MODERAÇÃO
+  // ============================
   async function handleAddComment(topicoId) {
     const state = commentState[topicoId] || {};
     const text = (state.text || '').trim();
 
     if (!text) return alert('Digite um comentário');
 
-    try {
-      const { error } = await supabase.from('comentarios').insert({
-        conteudo: text,
-        topico_id: Number(topicoId),
-        usuario_id: user?.id || null,
-        user_email: user?.email || null,
-        approved: false
-      });
+    const isPrivileged = canModerate();
 
-      if (error) {
-        alert(error.message);
-        return;
-      }
+    const payload = {
+      conteudo: text,
+      topico_id: Number(topicoId),
+      user_id: user?.id || null,
+      user_email: user?.email || null,
+      approved: isPrivileged // admin/supervisor já entra aprovado
+    };
 
-      setLocalComment(topicoId, { text: '' });
-      await loadData();
+    const { error } = await supabase
+      .from('comentarios')
+      .insert(payload);
 
-    } catch (err) {
-      console.error(err);
-      alert('Erro inesperado ao salvar comentário');
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setLocalComment(topicoId, { text: '', imageFile: null });
+
+    await loadData();
+
+    // popup apenas para supervisor/admin (simulação de auditoria)
+    if (isPrivileged) {
+      console.log('✔ Comentário aprovado automaticamente');
+    } else {
+      alert('Seu comentário foi enviado e está aguardando aprovação.');
     }
   }
 
@@ -156,7 +155,10 @@ export default function Base() {
     window.location.href = '/login';
   }
 
-  const isPrivileged = ['admin', 'supervisor'].includes(userRole);
+  // ============================
+  // FILTRO COM MODERAÇÃO
+  // ============================
+  const isPrivileged = canModerate();
 
   const filteredTopicos = topicos
     .filter(t =>
@@ -198,7 +200,7 @@ export default function Base() {
 
         <input
           className="search-bar"
-          placeholder="Pesquisar tópicos, comentários e categorias..."
+          placeholder="Pesquisar tópicos, comentários, categorias..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -223,6 +225,9 @@ export default function Base() {
               <button onClick={() => window.location.href = '/nova-categoria'}>
                 + Nova Categoria
               </button>
+              <button>
+                Excluir Categoria
+              </button>
             </div>
           )}
 
@@ -234,10 +239,7 @@ export default function Base() {
 
         {filteredTopicos.map(topico => {
           const state = commentState[topico.id] || {};
-
-          const comentarios = (comentariosMap[topico.id] || []).filter(c =>
-            isPrivileged ? true : c.approved === true
-          );
+          const comentarios = comentariosMap[topico.id] || [];
 
           return (
             <div key={topico.id} className="topico-card">
@@ -263,13 +265,13 @@ export default function Base() {
                 <h3>Comentários</h3>
 
                 {comentarios.map(c => {
-                  const isOwner = user?.id === c.usuario_id;
+                  const isOwner = user?.id === c.user_id;
 
                   return (
                     <div key={c.id} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid #333' }}>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <strong>{c.usuario_email}</strong>
+                        <strong>{c.user_email || 'Anônimo'}</strong>
 
                         <span style={{ fontSize: 11, color: '#888' }}>
                           {c.created_at
