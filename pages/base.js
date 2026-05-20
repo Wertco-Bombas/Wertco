@@ -167,13 +167,16 @@ export default function Base() {
       imageUrl = await uploadImage(state.imageFile);
     }
 
-    const payload = {
-      texto: text,
-      topico_id: topicoId,
-      user_id: user?.id || null,
-      user_email: user?.email || null,
-      image_url: imageUrl,
-    };
+   const payload = {
+  texto: text,
+  topico_id: topicoId,
+  user_id: user?.id || null,
+  user_email: user?.email || null,
+  user_role: /* obter role do usuário */,
+  image_url: imageUrl,
+  approved: userRole === 'admin' || userRole === 'supervisor' ? true : false
+};
+
 
     const { error } = await supabase.from('comentarios').insert([payload]);
     if (error) {
