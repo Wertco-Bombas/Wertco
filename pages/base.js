@@ -33,7 +33,7 @@ export default function Base() {
         .eq('id', session.user.id)
         .single();
 
-      setUserRole(profile?.role || 'user');
+      if (profile?.role) setUserRole(profile.role);
     }
 
     await loadData();
@@ -71,21 +71,21 @@ export default function Base() {
   }
 
   function canModerate() {
-    return ['admin', 'supervisor'].includes(userRole);
+    return userRole === 'admin' || userRole === 'supervisor';
   }
 
   function setLocalComment(topicoId, patch) {
     setCommentState(prev => ({
       ...prev,
       [topicoId]: {
-        ...(prev[topicoId] || { text: '', imageFile: null, editingId: null }),
+        ...(prev[topicoId] || { text: '', imageFile: null }),
         ...patch
       }
     }));
   }
 
   // =========================
-  // ADD COMMENT (CORRIGIDO)
+  // CREATE COMMENT (APPROVAL)
   // =========================
   async function handleAddComment(topicoId) {
     const state = commentState[topicoId] || {};
@@ -95,40 +95,25 @@ export default function Base() {
 
     const isPrivileged = canModerate();
 
-    const payload = {
+    const { error } = await supabase.from('comentarios').insert({
       conteudo: text,
       topico_id: Number(topicoId),
-      user_id: user?.id || null,
-      user_email: user?.email || null,
-      approved: isPrivileged // admin/supervisor já aprova
-    };
-
-    const { error } = await supabase
-      .from('comentarios')
-      .insert(payload);
+      usuario_id: user?.id || null,
+      user_email: user?.email || null, // CORRETO (sem schema error)
+      approved: isPrivileged ? true : false
+    });
 
     if (error) {
       alert(error.message);
       return;
     }
 
-    setLocalComment(topicoId, { text: '', imageFile: null, editingId: null });
-
+    setLocalComment(topicoId, { text: '', imageFile: null });
     await loadData();
-
-    if (!isPrivileged) {
-      alert('Comentário enviado para aprovação.');
-    }
   }
 
   async function deleteComment(id) {
-    const { error } = await supabase
-      .from('comentarios')
-      .delete()
-      .eq('id', id);
-
-    if (error) return alert(error.message);
-
+    await supabase.from('comentarios').delete().eq('id', id);
     await loadData();
   }
 
@@ -137,15 +122,12 @@ export default function Base() {
 
     if (!state?.editingId) return;
 
-    const { error } = await supabase
+    await supabase
       .from('comentarios')
       .update({ conteudo: state.text })
       .eq('id', state.editingId);
 
-    if (error) return alert(error.message);
-
     setLocalComment(topicoId, { text: '', editingId: null });
-
     await loadData();
   }
 
@@ -162,7 +144,7 @@ export default function Base() {
   }
 
   // =========================
-  // FILTRO COM APROVAÇÃO
+  // FILTER TOPICOS
   // =========================
   const isPrivileged = canModerate();
 
@@ -189,7 +171,7 @@ export default function Base() {
         </div>
 
         <div className="topbar-right">
-          <span>{user?.email}</span>
+          <span className="user-email">{user?.email}</span>
 
           <button onClick={() => window.location.href = '/dashboard'}>
             Menu
@@ -206,32 +188,38 @@ export default function Base() {
 
         <input
           className="search-bar"
-          placeholder="Pesquisar..."
+          placeholder="Pesquisar tópicos, comentários, categorias..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
 
-        <select
-          value={selectedCategoria}
-          onChange={e => setSelectedCategoria(e.target.value)}
-        >
-          <option value="">Todas categorias</option>
-          {categorias.map(c => (
-            <option key={c.id} value={c.id}>{c.nome}</option>
-          ))}
-        </select>
+        <div className="toolbar-row">
 
-        {canModerate() && (
-          <div className="toolbar-buttons">
-            <button onClick={() => window.location.href = '/novo-topico'}>
-              + Novo Tópico
-            </button>
-            <button onClick={() => window.location.href = '/nova-categoria'}>
-              + Nova Categoria
-            </button>
-          </div>
-        )}
+          <select
+            value={selectedCategoria}
+            onChange={e => setSelectedCategoria(e.target.value)}
+          >
+            <option value="">Todas categorias</option>
+            {categorias.map(c => (
+              <option key={c.id} value={c.id}>{c.nome}</option>
+            ))}
+          </select>
 
+          {canModerate() && (
+            <div className="toolbar-buttons">
+              <button onClick={() => window.location.href = '/novo-topico'}>
+                + Novo Tópico
+              </button>
+              <button onClick={() => window.location.href = '/nova-categoria'}>
+                + Nova Categoria
+              </button>
+              <button>
+                Excluir Categoria
+              </button>
+            </div>
+          )}
+
+        </div>
       </div>
 
       {/* TOPICOS */}
@@ -239,7 +227,13 @@ export default function Base() {
 
         {filteredTopicos.map(topico => {
           const state = commentState[topico.id] || {};
-          const comentarios = comentariosMap[topico.id] || [];
+
+          const comentariosRaw = comentariosMap[topico.id] || [];
+
+          // 🔥 FILTRO DE APROVAÇÃO
+          const comentarios = isPrivileged
+            ? comentariosRaw
+            : comentariosRaw.filter(c => c.approved === true);
 
           return (
             <div key={topico.id} className="topico-card">
@@ -252,57 +246,66 @@ export default function Base() {
                 </span>
               </div>
 
-              <small>
-                {topico.user_email || 'Autor desconhecido'} • {' '}
+              <small style={{ color: '#aaa' }}>
+                {topico.user_email || 'Autor desconhecido'} •{' '}
                 {new Date(topico.created_at || Date.now()).toLocaleString()}
               </small>
 
-              <p>{topico.descricao}</p>
+              <p style={{ marginTop: 10 }}>{topico.descricao}</p>
 
               {/* COMENTÁRIOS */}
               <div className="comentarios">
 
                 <h3>Comentários</h3>
 
-                {comentarios
-                  .filter(c => isPrivileged ? true : c.approved)
-                  .map(c => {
-                    const isOwner = user?.id === c.user_id;
+                {comentarios.map(c => {
+                  const isOwner = user?.id === c.usuario_id;
 
-                    return (
-                      <div key={c.id} style={{ marginBottom: 12 }}>
+                  return (
+                    <div key={c.id} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid #333' }}>
 
-                        <strong>{c.user_email || 'Anônimo'}</strong>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <strong>{c.user_email || c.usuario_email || 'Anônimo'}</strong>
 
-                        <p>{c.conteudo}</p>
-
-                        {isOwner && (
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button onClick={() => startEditComment(topico.id, c)}>Editar</button>
-                            <button onClick={() => deleteComment(c.id)}>Excluir</button>
-                          </div>
-                        )}
-
+                        <span style={{ fontSize: 11, color: '#888' }}>
+                          {c.created_at
+                            ? new Date(c.created_at).toLocaleString()
+                            : 'sem data'}
+                        </span>
                       </div>
-                    );
-                  })}
 
+                      <p style={{ marginTop: 5 }}>{c.conteudo}</p>
+
+                      {(isOwner || canModerate()) && (
+                        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                          <button onClick={() => startEditComment(topico.id, c)}>
+                            Editar
+                          </button>
+
+                          <button onClick={() => deleteComment(c.id)}>
+                            Excluir
+                          </button>
+                        </div>
+                      )}
+
+                    </div>
+                  );
+                })}
+
+                {/* INPUT */}
                 <div className="comentario-input">
 
                   <textarea
                     value={state.text || ''}
-                    onChange={e => setLocalComment(topico.id, { text: e.target.value })}
+                    onChange={e =>
+                      setLocalComment(topico.id, { text: e.target.value })
+                    }
+                    placeholder="Escreva um comentário..."
                   />
 
-                  {state.editingId ? (
-                    <button onClick={() => saveEditComment(topico.id)}>
-                      Salvar
-                    </button>
-                  ) : (
-                    <button onClick={() => handleAddComment(topico.id)}>
-                      Enviar
-                    </button>
-                  )}
+                  <button className="btn btnYellow" onClick={() => handleAddComment(topico.id)}>
+                    Enviar
+                  </button>
 
                 </div>
 
