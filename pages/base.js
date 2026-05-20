@@ -100,14 +100,12 @@ export default function Base() {
       });
     }
 
-    const { error } = await supabase
-      .from('comentarios')
-      .insert({
-        conteudo: text,
-        topico_id: Number(topicoId),
-        usuario_id: user?.id || null,
-        usuario_email: user?.email || null,
-        imagem_base64: imageBase64
+const payload = {
+  conteudo: text,
+  topico_id: Number(topicoId),
+  usuario_id: user?.id || null,
+  usuario_email: user?.email || null
+};
       });
 
     if (error) {
