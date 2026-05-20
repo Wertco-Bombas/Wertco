@@ -157,7 +157,9 @@ export default function Base() {
 
         <div className="topbar-right">
           <span className="user-email">{user?.email}</span>
-          <button onClick={() => alert('menu')}>Menu</button>
+         <button onClick={() => window.location.href = '/dashboard'}>
+  Menu
+</button>
           <button onClick={logout}>Sair</button>
         </div>
       </div>
