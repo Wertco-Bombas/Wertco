@@ -74,9 +74,9 @@ export default function Base() {
     }));
   }
 
-  // =======================
+  // =========================
   // CREATE COMMENT
-  // =======================
+  // =========================
   async function handleAddComment(topicoId) {
     const text = commentState[topicoId]?.text?.trim();
     if (!text) return;
@@ -92,12 +92,13 @@ export default function Base() {
     if (error) return alert(error.message);
 
     setPopup(isPrivileged ? null : 'Comentário enviado para aprovação');
+
     await loadData();
   }
 
-  // =======================
-  // APPROVE
-  // =======================
+  // =========================
+  // APPROVE COMMENT
+  // =========================
   async function approveComment(id) {
     const { error } = await supabase
       .from('comentarios')
@@ -109,9 +110,9 @@ export default function Base() {
     await loadData();
   }
 
-  // =======================
-  // DELETE
-  // =======================
+  // =========================
+  // DELETE COMMENT
+  // =========================
   async function deleteComment(id) {
     const { error } = await supabase
       .from('comentarios')
@@ -124,7 +125,12 @@ export default function Base() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#111', color: '#fff' }}>
+    <div style={{
+      display: 'flex',
+      minHeight: '100vh',
+      background: '#111',
+      color: '#fff'
+    }}>
 
       {/* POPUP */}
       {popup && (
@@ -133,8 +139,8 @@ export default function Base() {
           top: 20,
           right: 20,
           background: '#222',
-          padding: 15,
-          border: '1px solid #555',
+          padding: 12,
+          border: '1px solid #444',
           zIndex: 999
         }}>
           {popup}
@@ -142,30 +148,42 @@ export default function Base() {
         </div>
       )}
 
-      {/* LEFT */}
+      {/* LEFT CONTENT */}
       <div style={{ flex: 3, padding: 20 }}>
 
-        {topicos.map(t => {
+        {topicos.map(t => (
+          <div key={t.id} style={{
+            marginBottom: 25,
+            padding: 15,
+            border: '1px solid #333',
+            borderRadius: 8
+          }}>
 
-          const comentarios = (comentariosMap[t.id] || [])
-            .filter(c => isPrivileged ? true : c.approved);
+            <h2>{t.titulo}</h2>
 
-          return (
-            <div key={t.id} style={{
-              marginBottom: 25,
-              padding: 15,
-              border: '1px solid #333',
-              borderRadius: 8
-            }}>
+            {/* categoria dentro do tópico */}
+            <div style={{ fontSize: 12, color: '#aaa', marginBottom: 6 }}>
+              🏷 Categoria: {
+                categorias.find(c => c.id === t.categoria_id)?.nome || 'Sem categoria'
+              }
+            </div>
 
-              <h2>{t.titulo}</h2>
-              <p>{t.conteudo}</p>
+            <p>{t.conteudo}</p>
 
-              {comentarios.map(c => {
+            {/* COMMENTS */}
+            {(comentariosMap[t.id] || [])
+              .filter(c => isPrivileged ? true : c.approved)
+              .map(c => {
+
                 const canModerate = isPrivileged;
+                const isOwner = user?.id === c.usuario_id;
 
                 return (
-                  <div key={c.id} style={{ marginTop: 10, padding: 10, background: '#222' }}>
+                  <div key={c.id} style={{
+                    marginTop: 10,
+                    padding: 10,
+                    background: '#222'
+                  }}>
 
                     <b>{c.user_email || 'Anônimo'}</b>
                     <p>{c.conteudo}</p>
@@ -176,10 +194,32 @@ export default function Base() {
 
                     <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
 
+                      {isOwner && !c.approved && (
+                        <button
+                          onClick={async () => {
+                            const novo = prompt('Editar comentário:', c.conteudo);
+                            if (novo) {
+                              await supabase
+                                .from('comentarios')
+                                .update({ conteudo: novo })
+                                .eq('id', c.id);
+                              await loadData();
+                            }
+                          }}
+                        >
+                          Editar
+                        </button>
+                      )}
+
                       {canModerate && (
                         <>
-                          <button onClick={() => approveComment(c.id)}>Aprovar</button>
-                          <button onClick={() => deleteComment(c.id)}>Excluir</button>
+                          <button onClick={() => approveComment(c.id)}>
+                            Aprovar
+                          </button>
+
+                          <button onClick={() => deleteComment(c.id)}>
+                            Excluir
+                          </button>
                         </>
                       )}
 
@@ -188,21 +228,23 @@ export default function Base() {
                 );
               })}
 
-              <div style={{ marginTop: 10 }}>
-                <textarea
-                  style={{ width: '100%' }}
-                  onChange={(e) => setLocalComment(t.id, { text: e.target.value })}
-                  placeholder="Comentário..."
-                />
-                <button onClick={() => handleAddComment(t.id)}>
-                  Enviar
-                </button>
-              </div>
+            {/* INPUT */}
+            <div style={{ marginTop: 10 }}>
+              <textarea
+                style={{ width: '100%' }}
+                onChange={(e) =>
+                  setLocalComment(t.id, { text: e.target.value })
+                }
+                placeholder="Comentário..."
+              />
 
+              <button onClick={() => handleAddComment(t.id)}>
+                Enviar
+              </button>
             </div>
-          );
-        })}
 
+          </div>
+        ))}
       </div>
 
       {/* RIGHT SIDEBAR */}
