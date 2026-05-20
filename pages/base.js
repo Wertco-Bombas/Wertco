@@ -10,6 +10,7 @@ export default function Base() {
   const [comment, setComment] = useState('');
   const [image, setImage] = useState(null);
   const [editingComment, setEditingComment] = useState(null);
+  const [comments, setComments] = useState([]);
 
   // Carregar tópicos e categorias
   useEffect(() => {
@@ -30,6 +31,16 @@ export default function Base() {
     loadData();
   }, []);
 
+  // Carregar comentários
+  async function loadComments(topicId) {
+    const { data } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('topic_id', topicId)
+      .order('created_at', { ascending: false });
+    setComments(data || []);
+  }
+
   // Adicionar comentário
   async function handleAddComment(topicId) {
     if (!comment) return;
@@ -38,14 +49,14 @@ export default function Base() {
       {
         text: comment,
         topic_id: topicId,
-        image_url: image ? image.name : null, // simplificado
+        image_url: image ? image.name : null,
       },
     ]);
 
     if (!error) {
       setComment('');
       setImage(null);
-      alert('Comentário enviado com sucesso!');
+      loadComments(topicId);
     }
   }
 
@@ -59,33 +70,32 @@ export default function Base() {
     if (!error) {
       setEditingComment(null);
       setComment('');
-      alert('Comentário atualizado!');
+      loadComments();
     }
   }
 
   // Excluir comentário
-  async function handleDeleteComment(commentId) {
+  async function handleDeleteComment(commentId, topicId) {
     const { error } = await supabase.from('comments').delete().eq('id', commentId);
-    if (!error) alert('Comentário excluído!');
+    if (!error) loadComments(topicId);
   }
 
   return (
-    <div className="page container">
-      <h1 className="topicTitle">Base de Conhecimento</h1>
+    <div className="base-container">
+      <h1>Base de Conhecimento</h1>
 
       {/* Barra de pesquisa */}
       <input
         type="text"
-        placeholder="Pesquisar em toda a base..."
-        className="formInput mt-4"
+        placeholder="Pesquisar títulos, descrições, categorias, comentários..."
+        className="search-bar"
         value={search}
         onChange={e => setSearch(e.target.value)}
       />
 
       {/* Filtro + Botões */}
-      <div className="flex items-center justify-between mt-4">
+      <div className="actions">
         <select
-          className="formInput"
           value={selectedCategory}
           onChange={e => setSelectedCategory(e.target.value)}
         >
@@ -95,74 +105,66 @@ export default function Base() {
           ))}
         </select>
 
-        <div className="flex gap-3">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded">
-            + Novo Tópico
-          </button>
-          <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded">
-            + Nova Categoria
-          </button>
-          <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded">
-            Excluir Categoria
-          </button>
+        <div>
+          <button>+ Novo Tópico</button>
+          <button>+ Nova Categoria</button>
+          <button>Excluir Categoria</button>
         </div>
       </div>
 
       {/* Lista de tópicos */}
-      <div className="grid gap-4 mt-6">
-        {topics
-          .filter(t =>
-            (!search || t.title.toLowerCase().includes(search.toLowerCase()) || 
-             t.description.toLowerCase().includes(search.toLowerCase())) &&
-            (!selectedCategory || t.category_id === selectedCategory)
-          )
-          .map(topic => (
-            <div key={topic.id} className="card p-4 bg-gray-800 text-white rounded shadow">
-              <h2 className="text-lg font-semibold">{topic.title}</h2>
-              <p className="text-sm text-gray-300 mt-2">{topic.description}</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Categoria: {topic.categories?.name || 'Sem categoria'}
-              </p>
+      {topics
+        .filter(t =>
+          (!search ||
+            t.title.toLowerCase().includes(search.toLowerCase()) ||
+            t.description.toLowerCase().includes(search.toLowerCase()) ||
+            t.categories?.name?.toLowerCase().includes(search.toLowerCase())) &&
+          (!selectedCategory || t.category_id === selectedCategory)
+        )
+        .map(topic => (
+          <div key={topic.id} className="topico-card">
+            <div className="topico-header">
+              <h2 className="topico-titulo">{topic.title}</h2>
+              <span className="categoria-tag">{topic.categories?.name || 'Sem categoria'}</span>
+            </div>
+            <p>{topic.description}</p>
 
-              {/* Comentários */}
-              <div className="mt-4">
+            {/* Comentários */}
+            <div className="comentarios">
+              <h3>Comentários</h3>
+              <ul>
+                {comments
+                  .filter(c => c.topic_id === topic.id)
+                  .map(c => (
+                    <li key={c.id}>
+                      <div>
+                        <strong>{c.user_email}</strong> — {c.text}
+                      </div>
+                      {c.image_url && <img src={c.image_url} alt="Comentário" style={{ maxWidth: '150px', marginTop: '5px' }} />}
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={() => { setEditingComment(c.id); setComment(c.text); }}>Editar</button>
+                        <button onClick={() => handleDeleteComment(c.id, topic.id)}>Excluir</button>
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+
+              {/* Campo para adicionar comentário */}
+              <div className="comentario-input">
                 <textarea
-                  className="formInput"
-                  placeholder="Escreva seu comentário..."
+                  placeholder="Adicionar comentário..."
                   value={comment}
                   onChange={e => setComment(e.target.value)}
                 />
                 <input
                   type="file"
-                  className="formInput mt-2"
                   onChange={e => setImage(e.target.files[0])}
                 />
-                <div className="flex gap-2 mt-2">
-                  <button
-                    className="btn btnYellow"
-                    onClick={() => handleAddComment(topic.id)}
-                  >
-                    Enviar
-                  </button>
-                  {editingComment && (
-                    <button
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded"
-                      onClick={() => handleEditComment(editingComment)}
-                    >
-                      Salvar edição
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Exemplo de comentários renderizados */}
-              <div className="mt-4">
-                <p className="text-sm text-gray-400">Comentários aparecerão aqui...</p>
-                {/* Aqui você renderizaria os comentários do Supabase e adicionaria botões de editar/excluir */}
+                <button onClick={() => handleAddComment(topic.id)}>Enviar</button>
               </div>
             </div>
-          ))}
-      </div>
+          </div>
+        ))}
     </div>
   );
 }
