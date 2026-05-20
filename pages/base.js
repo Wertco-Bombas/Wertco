@@ -45,28 +45,36 @@ export default function Base() {
     setCategorias(data || []);
   }
 
-  // Carrega tópicos e comentários associados
-  async function loadTopicosAndComments() {
-    const { data: topicosData, error: tError } = await supabase
-      .from('topicos')
-      .select('id, titulo, descricao, categoria_id, categorias(nome)')
-      .order('created_at', { ascending: false });
+ // Substitua a função loadTopicosAndComments existente por esta versão segura
+async function loadTopicosAndComments() {
+  const { data: topicosData, error: tError } = await supabase
+    .from('topicos')
+    .select('*') // pega todas as colunas para inspecionar
+    .order('created_at', { ascending: false });
 
-    if (tError) {
-      console.error('Erro ao carregar tópicos:', tError);
-      setTopicos([]);
-      setComentariosMap({});
-      return;
-    }
+  if (tError) {
+    console.error('Erro ao carregar tópicos (safe):', tError);
+    setTopicos([]);
+    setComentariosMap({});
+    return;
+  }
 
-    setTopicos(topicosData || []);
+  console.log('topicosData (inspecionar colunas):', topicosData);
+  // Normaliza nomes comuns para uso no front
+  const normalized = (topicosData || []).map(t => ({
+    id: t.id,
+    titulo: t.titulo || t.title || t.nome || t.name || '',
+    descricao: t.descricao || t.description || t.conteudo || t.body || t.texto || '',
+    categoria_id: t.categoria_id || t.category_id || t.categoria || null,
+    categorias: t.categorias || t.categoria || t.category || null,
+    raw: t, // mantém o objeto original para inspeção
+  }));
 
-    const ids = (topicosData || []).map(t => t.id);
-    if (ids.length === 0) {
-      setComentariosMap({});
-      return;
-    }
+  setTopicos(normalized);
 
+  // carregar comentários para todos os tópicos carregados
+  const ids = (topicosData || []).map(t => t.id);
+  if (ids.length) {
     const { data: comentariosData, error: cError } = await supabase
       .from('comentarios')
       .select('id, texto, topico_id, user_id, user_email, image_url, created_at')
@@ -85,7 +93,10 @@ export default function Base() {
       map[c.topico_id].push(c);
     });
     setComentariosMap(map);
+  } else {
+    setComentariosMap({});
   }
+}
 
   // Upload de imagem para bucket 'comentarios'
   async function uploadImage(file) {
