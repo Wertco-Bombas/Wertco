@@ -45,12 +45,12 @@ export default function Base() {
     setCategorias(data || []);
   }
 
- // Substitua a função loadTopicosAndComments existente por esta versão segura
+// Substitua a função existente por esta versão adaptada ao seu schema
 async function loadTopicosAndComments() {
+  // 1) busca todos os tópicos sem selecionar colunas específicas (inspeção segura)
   const { data: topicosData, error: tError } = await supabase
     .from('topicos')
-    .select('*') // pega todas as colunas para inspecionar
-    .order('created_at', { ascending: false });
+    .select('*');
 
   if (tError) {
     console.error('Erro ao carregar tópicos (safe):', tError);
@@ -59,32 +59,50 @@ async function loadTopicosAndComments() {
     return;
   }
 
+  // 2) log para inspecionar no console os objetos retornados
   console.log('topicosData (inspecionar colunas):', topicosData);
-  // Normaliza nomes comuns para uso no front
+
+  // 3) normaliza para os nomes que você tem no banco
   const normalized = (topicosData || []).map(t => ({
     id: t.id,
-    titulo: t.titulo || t.title || t.nome || t.name || '',
-    descricao: t.descricao || t.description || t.conteudo || t.body || t.texto || '',
-    categoria_id: t.categoria_id || t.category_id || t.categoria || null,
-    categorias: t.categorias || t.categoria || t.category || null,
-    raw: t, // mantém o objeto original para inspeção
+    titulo: t.titulo || '',
+    descricao: t.conteudo || '', // usa conteudo como descrição
+    categoria_id: t.categoria_id || null,
+    imagem_url: t.imagem_url || null,
+    raw: t, // mantém o objeto original para inspeção se precisar
   }));
+
+  // 4) ordena localmente por id desc como fallback (caso não exista created_at)
+  normalized.sort((a, b) => (b.id || 0) - (a.id || 0));
 
   setTopicos(normalized);
 
-  // carregar comentários para todos os tópicos carregados
+  // 5) carregar comentários para os tópicos retornados
   const ids = (topicosData || []).map(t => t.id);
   if (ids.length) {
-    const { data: comentariosData, error: cError } = await supabase
-      .from('comentarios')
-      .select('id, texto, topico_id, user_id, user_email, image_url, created_at')
-      .in('topico_id', ids)
-      .order('created_at', { ascending: true });
+    // tenta ordenar por created_at; se falhar, faz fallback sem order
+    let comentariosData = null;
+    let cError = null;
 
-    if (cError) {
-      console.error('Erro ao carregar comentários:', cError);
-      setComentariosMap({});
-      return;
+    try {
+      const res = await supabase
+        .from('comentarios')
+        .select('id, texto, topico_id, user_id, user_email, image_url, created_at')
+        .in('topico_id', ids)
+        .order('created_at', { ascending: true });
+      comentariosData = res.data;
+      cError = res.error;
+    } catch (err) {
+      console.warn('Erro ao buscar comentários com order, tentando sem order', err);
+    }
+
+    if (cError || !comentariosData) {
+      const fallback = await supabase
+        .from('comentarios')
+        .select('id, texto, topico_id, user_id, user_email, image_url, created_at')
+        .in('topico_id', ids);
+      comentariosData = fallback.data || [];
+      if (fallback.error) console.error('Erro fallback comentários:', fallback.error);
     }
 
     const map = {};
@@ -97,6 +115,7 @@ async function loadTopicosAndComments() {
     setComentariosMap({});
   }
 }
+
 
   // Upload de imagem para bucket 'comentarios'
   async function uploadImage(file) {
