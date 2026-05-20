@@ -70,7 +70,7 @@ export default function Base() {
         id: c.id,
         conteudo: c.conteudo,
         usuario_id: c.usuario_id,
-        usuario_email: c.usuario_email || c.user_email || 'Anônimo',
+        usuario_email: c.user_email || 'Anônimo',
         created_at: c.created_at,
         approved: c.approved ?? true
       });
@@ -94,7 +94,7 @@ export default function Base() {
   }
 
   // =========================
-  // INSERT CORRIGIDO
+  // CRIAR COMENTÁRIO
   // =========================
   async function handleAddComment(topicoId) {
     const state = commentState[topicoId] || {};
@@ -107,7 +107,7 @@ export default function Base() {
         conteudo: text,
         topico_id: Number(topicoId),
         usuario_id: user?.id || null,
-        usuario_email: user?.email || null,
+        user_email: user?.email || null,
         approved: false
       });
 
@@ -198,7 +198,7 @@ export default function Base() {
 
         <input
           className="search-bar"
-          placeholder="Pesquisar tópicos, comentários, categorias..."
+          placeholder="Pesquisar tópicos, comentários e categorias..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
