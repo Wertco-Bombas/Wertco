@@ -54,10 +54,6 @@ export default function Layout({ children }) {
     }
   }
 
-  function goToDashboard() {
-    router.push('/dashboard');
-  }
-
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <header className="bg-gray-800 shadow-md">
@@ -87,7 +83,7 @@ export default function Layout({ children }) {
             )}
           </div>
 
-          {/* Informações do usuário e botões só aparecem fora da tela de login */}
+          {/* Informações do usuário e botões */}
           {router.pathname !== '/login' && (
             <div className="flex items-center gap-3">
               {userEmail ? (
@@ -95,12 +91,17 @@ export default function Layout({ children }) {
               ) : (
                 <span className="text-sm text-gray-400">Convidado</span>
               )}
-              <button
-                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded"
-                onClick={goToDashboard}
-              >
-                Menu
-              </button>
+
+              {/* Só mostra o botão Menu se NÃO estiver no dashboard */}
+              {router.pathname !== '/dashboard' && (
+                <button
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded"
+                  onClick={() => router.push('/dashboard')}
+                >
+                  Menu
+                </button>
+              )}
+
               <button
                 className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded"
                 onClick={handleLogout}
