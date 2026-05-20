@@ -99,7 +99,7 @@ export default function Base() {
       imagem_url: t.imagem_url ?? t.image_url ?? null,
       user_email: t.user_email ?? null,
       user_role: t.user_role ?? null,
-      approved: typeof t.approved === 'boolean' ? t.approved : true, // se não existir, assume true para compatibilidade
+      approved: typeof t.approved === 'boolean' ? t.approved : true,
       raw: t,
     }));
 
@@ -264,15 +264,26 @@ export default function Base() {
     await loadTopicosAndComments();
   }
 
-  // Aprovar / Rejeitar comentário (chama API backend)
+  // Aprovar / Rejeitar comentário (chama API backend) - usa rota correta e envia token
   async function toggleApproveComment(commentId, approve) {
     try {
-      const res = await fetch('/api/approve-comment', {
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+
+      const res = await fetch('/api/comentarios/approve-comment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ id: commentId, approve }),
       });
-      if (!res.ok) throw new Error('Falha na requisição de aprovação');
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || 'Falha na requisição de aprovação');
+      }
+
       await loadTopicosAndComments();
     } catch (err) {
       console.error('Erro ao aprovar/rejeitar comentário:', err);
@@ -280,15 +291,26 @@ export default function Base() {
     }
   }
 
-  // Aprovar / Rejeitar tópico
+  // Aprovar / Rejeitar tópico - usa rota correta e envia token
   async function toggleApproveTopico(topicoId, approve) {
     try {
-      const res = await fetch('/api/approve-topico', {
+      const { data } = await supabase.auth.getSession();
+      const token = data?.session?.access_token;
+
+      const res = await fetch('/api/comentarios/approve-topico', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ id: topicoId, approve }),
       });
-      if (!res.ok) throw new Error('Falha na requisição de aprovação');
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || 'Falha na requisição de aprovação');
+      }
+
       await loadTopicosAndComments();
     } catch (err) {
       console.error('Erro ao aprovar/rejeitar tópico:', err);
