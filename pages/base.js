@@ -1,126 +1,114 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
 
-export default function Dashboard() {
-  const router = useRouter();
-
+export default function Base() {
   const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [role, setRole] = useState("user");
 
-  const [pendingTopics, setPendingTopics] = useState([]);
-  const [logs, setLogs] = useState([]);
+  const [topicos, setTopicos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [comentariosMap, setComentariosMap] = useState({});
 
-  // AUTH CHECK
+  const [busca, setBusca] = useState("");
+  const [categoriaFiltro, setCategoriaFiltro] = useState("");
+
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
+    init();
+  }, []);
 
-      if (!user) {
-        router.push("/login");
-        return;
-      }
+  async function init() {
+    const { data: { session } } = await supabase.auth.getSession();
 
-      setUser(user);
+    const currentUser = session?.user || null;
+    setUser(currentUser);
 
-      const { data: profileData } = await supabase
+    if (currentUser) {
+      const { data: profile } = await supabase
         .from("profiles")
-        .select("*")
-        .eq("id", user.id)
+        .select("role")
+        .eq("id", currentUser.id)
         .single();
 
-      setProfile(profileData);
-
-      if (!profileData || !["admin", "supervisor"].includes(profileData.role)) {
-        router.push("/base");
-        return;
-      }
+      setRole(profile?.role || "user");
     }
 
-    load();
-  }, []);
-
-  // LOAD PENDING TOPICS
-  useEffect(() => {
-    async function loadPending() {
-      const { data } = await supabase
-        .from("topics")
-        .select("*")
-        .eq("status", "pending")
-        .order("id", { ascending: false });
-
-      setPendingTopics(data || []);
-    }
-
-    loadPending();
-  }, []);
-
-  // LOAD LOGS
-  useEffect(() => {
-    async function loadLogs() {
-      const { data } = await supabase
-        .from("audit_log")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      setLogs(data || []);
-    }
-
-    loadLogs();
-  }, []);
-
-  // APPROVE
-  async function approveTopic(id) {
-    await supabase
-      .from("topics")
-      .update({ status: "approved" })
-      .eq("id", id);
-
-    setPendingTopics(prev => prev.filter(t => t.id !== id));
+    loadData();
   }
 
-  // REJECT
-  async function rejectTopic(id) {
-    await supabase
-      .from("topics")
-      .delete()
-      .eq("id", id);
+  async function loadData() {
+    const { data: tops } = await supabase.from("topicos").select("*");
+    const { data: cats } = await supabase.from("categorias").select("*");
+    const { data: coms } = await supabase.from("comentarios").select("*");
 
-    setPendingTopics(prev => prev.filter(t => t.id !== id));
+    const map = {};
+    (coms || []).forEach(c => {
+      if (!map[c.topico_id]) map[c.topico_id] = [];
+      map[c.topico_id].push(c);
+    });
+
+    setTopicos(tops || []);
+    setCategorias(cats || []);
+    setComentariosMap(map);
   }
 
-  if (!user) return <p>Carregando...</p>;
+  async function comentar(topicoId) {
+    const textarea = document.getElementById(`comentario-${topicoId}`);
+    const conteudo = textarea.value;
+
+    if (!conteudo.trim()) return alert("Digite um comentário");
+
+    await supabase.from("comentarios").insert({
+      conteudo,
+      topico_id: topicoId,
+      usuario_id: user.id,
+      user_email: user.email,
+      approved: role === "admin" || role === "supervisor"
+    });
+
+    textarea.value = "";
+    loadData();
+  }
+
+  const topicosFiltrados = topicos.filter(t => {
+    const texto = `${t.title} ${t.content}`.toLowerCase();
+    return texto.includes(busca.toLowerCase());
+  });
 
   return (
-    <div style={{ padding: 20 }}>
+    <div className="base-container">
 
-      <h1>🔐 Painel Administrativo</h1>
+      <h1>Base de Conhecimento</h1>
 
-      {/* TOPICS PENDENTES */}
-      <h2>📌 Tópicos Pendentes</h2>
+      <input
+        placeholder="Pesquisar..."
+        value={busca}
+        onChange={e => setBusca(e.target.value)}
+      />
 
-      {pendingTopics.length === 0 && <p>Nenhum tópico pendente</p>}
-
-      {pendingTopics.map(t => (
+      {topicosFiltrados.map(t => (
         <div key={t.id} style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}>
-          <h3>{t.title}</h3>
-          <p>{t.description}</p>
-          <p><strong>Categoria:</strong> {t.category}</p>
 
-          <button onClick={() => approveTopic(t.id)}>✔ Aprovar</button>
-          <button onClick={() => rejectTopic(t.id)}>❌ Rejeitar</button>
-        </div>
-      ))}
+          <h2>{t.title}</h2>
+          <p>{t.content}</p>
 
-      {/* AUDITORIA */}
-      <h2 style={{ marginTop: 40 }}>📊 Auditoria</h2>
+          <h4>Comentários</h4>
 
-      {logs.map(log => (
-        <div key={log.id} style={{ borderBottom: "1px solid #eee", padding: 5 }}>
-          <p>
-            <strong>{log.action}</strong> → {log.table_name} → {log.record_id}
-          </p>
-          <small>{log.created_at}</small>
+          {(comentariosMap[t.id] || []).map(c => (
+            <div key={c.id}>
+              <strong>{c.user_email}</strong>
+              <p>{c.conteudo}</p>
+            </div>
+          ))}
+
+          {user && (
+            <div>
+              <textarea id={`comentario-${t.id}`} />
+              <button onClick={() => comentar(t.id)}>
+                Comentar
+              </button>
+            </div>
+          )}
+
         </div>
       ))}
 
