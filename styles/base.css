@@ -1,10 +1,8 @@
-/* base.css */
-
 .base-container {
-  background-color: #111;
-  color: #f5f5f5;
+  background: #0f172a;
+  color: #fff;
   min-height: 100vh;
-  padding: 20px;
+  padding: 30px;
   font-family: Arial, sans-serif;
 
   display: flex;
@@ -12,288 +10,274 @@
   align-items: center;
 }
 
-/* =========================
-   TOP BAR
-========================= */
+/* TOPO */
 
 .topbar {
   width: 100%;
   max-width: 1100px;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
 
-  padding: 10px 0;
-  margin-bottom: 10px;
+  margin-bottom: 30px;
 }
 
 .topbar-left h2 {
   margin: 0;
-  font-size: 20px;
   color: #ffd700;
-  letter-spacing: 0.5px;
+  font-size: 28px;
 }
 
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .user-email {
+  color: #ccc;
   font-size: 13px;
-  color: #aaa;
 }
 
-/* Botões topo */
 .topbar-right button {
-  background: #222;
-  color: #fff;
-  border: 1px solid #333;
-  padding: 6px 10px;
+  background: #dc2626;
+  border: none;
+  color: white;
+
+  padding: 10px 14px;
   border-radius: 8px;
+
   cursor: pointer;
-  transition: 0.2s;
 }
 
-.topbar-right button:hover {
-  background: #333;
-  border-color: #555;
-}
-
-/* =========================
-   TOOLBAR (SEARCH + FILTER)
-========================= */
+/* TOOLBAR */
 
 .toolbar {
   width: 100%;
   max-width: 900px;
-  margin: 10px 0 20px;
 
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
+
+  margin-bottom: 25px;
 }
 
-/* linha filtro + botões */
 .toolbar-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
 }
 
-/* =========================
-   SEARCH BAR
-========================= */
+/* SEARCH */
 
 .search-bar {
   width: 100%;
-  max-width: 650px;
 
-  padding: 10px 12px;
-  border-radius: 10px;
+  background: #1e293b;
+  border: 1px solid #334155;
 
-  background: #1a1a1a;
-  border: 1px solid #333;
-  color: #fff;
+  color: white;
 
-  font-size: 14px;
+  padding: 15px;
+  border-radius: 12px;
 
   outline: none;
-  transition: 0.2s;
+  font-size: 15px;
 }
 
 .search-bar:focus {
   border-color: #ffd700;
-  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.15);
 }
 
-/* =========================
-   SELECT (FILTRO)
-========================= */
+/* SELECT */
 
 .toolbar select {
-  padding: 10px 12px;
+  background: #1e293b;
+  border: 1px solid #334155;
 
-  background: #1a1a1a;
-  border: 1px solid #333;
-  color: #fff;
+  color: white;
 
+  padding: 12px;
   border-radius: 10px;
-  min-width: 200px;
 
-  outline: none;
-  cursor: pointer;
+  min-width: 220px;
 }
 
-/* =========================
-   BOTÕES ADMIN
-========================= */
+/* BOTÕES */
 
 .toolbar-buttons {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
-.toolbar-buttons button {
+.toolbar-buttons button,
+.btn {
   background: #ffd700;
   color: #111;
 
   border: none;
-  padding: 8px 12px;
+  padding: 10px 14px;
 
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: bold;
 
   cursor: pointer;
-  transition: 0.2s;
 }
 
-.toolbar-buttons button:hover {
-  background: #ffcc00;
-  transform: translateY(-1px);
+.toolbar-buttons button:hover,
+.btn:hover {
+  opacity: 0.9;
 }
 
-/* =========================
-   CARDS DE TÓPICOS
-========================= */
+.btnYellow {
+  background: #ffd700;
+}
+
+/* TOPICOS */
 
 .topico-card {
-  background: #1a1a1a;
-  border: 1px solid #333;
-
-  padding: 18px;
-  margin-bottom: 20px;
-
-  border-radius: 10px;
-
   width: 100%;
   max-width: 900px;
 
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  background: #1e293b;
 
-  text-align: left;
+  border: 1px solid #334155;
+
+  border-radius: 16px;
+
+  padding: 25px;
+  margin-bottom: 25px;
+
+  box-shadow:
+    0 5px 20px rgba(0,0,0,0.35);
 }
 
-/* header do tópico */
 .topico-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  margin-bottom: 15px;
 }
 
 .topico-titulo {
-  color: #ffd700;
-  font-size: 1.2em;
   margin: 0;
+  color: #ffd700;
 }
 
-/* categoria */
 .categoria-tag {
-  background: #ffd700;
-  color: #111;
+  background: #2563eb;
+  color: white;
 
-  padding: 5px 10px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 30px;
 
-  font-weight: bold;
   font-size: 12px;
+  font-weight: bold;
 }
 
-/* texto do tópico */
+/* TEXTO */
+
 .topico-card p {
-  margin-top: 10px;
   color: #ddd;
+  line-height: 1.6;
 }
 
-/* =========================
-   COMENTÁRIOS
-========================= */
+/* COMENTARIOS */
 
 .comentarios {
-  margin-top: 15px;
+  margin-top: 25px;
 }
 
 .comentarios h3 {
   color: #ffd700;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
 }
 
-/* lista */
-ul {
+.comentarios ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-ul li {
-  background: #222;
-  padding: 10px;
-  margin-bottom: 8px;
+.comentarios li {
+  background: #0f172a;
 
-  border-radius: 8px;
-  color: #ddd;
+  border: 1px solid #334155;
+
+  padding: 16px;
+  border-radius: 12px;
+
+  margin-bottom: 15px;
 }
 
-/* =========================
-   INPUT DE COMENTÁRIO
-========================= */
+/* FOTO */
 
-.comentario-input {
+.comentario-imagem {
+  width: 250px;
+  margin-top: 12px;
+  border-radius: 12px;
+}
+
+/* AÇÕES */
+
+.comentario-acoes {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 15px;
 }
 
-.comentario-input textarea {
-  width: 100%;
-  padding: 10px;
-
-  background: #222;
-  border: 1px solid #444;
-  color: #fff;
-
-  border-radius: 8px;
-
-  resize: vertical;
-  min-height: 60px;
-}
-
-.comentario-input input[type="file"] {
-  color: #fff;
-}
-
-/* botão enviar */
-.btn.btnYellow {
-  background: #ffd700;
-  color: #111;
+.comentario-acoes button {
+  background: #334155;
+  color: white;
 
   border: none;
   padding: 8px 12px;
 
   border-radius: 8px;
-  font-weight: bold;
-
   cursor: pointer;
 }
 
-.btn.btnYellow:hover {
-  background: #ffcc00;
+/* INPUT */
+
+.comentario-input {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  margin-top: 20px;
 }
 
-/* =========================
-   RESPONSIVO
-========================= */
+.comentario-input textarea {
+  width: 100%;
+  min-height: 90px;
+
+  background: #0f172a;
+  border: 1px solid #334155;
+
+  color: white;
+
+  border-radius: 12px;
+  padding: 15px;
+
+  resize: vertical;
+}
+
+.comentario-input input[type="file"] {
+  color: white;
+}
+
+/* RESPONSIVO */
 
 @media (max-width: 768px) {
 
   .topbar {
     flex-direction: column;
-    gap: 10px;
     align-items: flex-start;
+    gap: 15px;
   }
 
   .toolbar-row {
@@ -309,11 +293,13 @@ ul li {
     flex-wrap: wrap;
   }
 
-  .search-bar {
-    max-width: 100%;
+  .topico-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 
-  .topico-card {
-    padding: 14px;
+  .comentario-imagem {
+    width: 100%;
   }
 }
