@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useRouter } from 'next/router';
 
 export default function Base() {
+  const router = useRouter();
+
   const [user, setUser] = useState(null);
   const [role, setRole] = useState('user');
 
@@ -10,7 +13,6 @@ export default function Base() {
   const [comentariosMap, setComentariosMap] = useState({});
 
   const [busca, setBusca] = useState('');
-  const [categoriaFiltro, setCategoriaFiltro] = useState('');
 
   // =========================
   // INIT
@@ -21,19 +23,22 @@ export default function Base() {
 
   async function init() {
     const { data } = await supabase.auth.getUser();
-    const userData = data?.user;
+    const u = data?.user;
 
-    if (userData) {
-      setUser(userData);
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userData.id)
-        .single();
-
-      setRole(profile?.role || 'user');
+    if (!u) {
+      router.push('/login');
+      return;
     }
+
+    setUser(u);
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', u.id)
+      .single();
+
+    setRole(profile?.role || 'user');
 
     loadData();
   }
@@ -57,6 +62,7 @@ export default function Base() {
       .order('created_at', { ascending: false });
 
     const map = {};
+
     (coms || []).forEach(c => {
       if (!map[c.topico_id]) map[c.topico_id] = [];
       map[c.topico_id].push(c);
@@ -72,89 +78,111 @@ export default function Base() {
   // =========================
   async function logout() {
     await supabase.auth.signOut();
-    location.href = '/login';
+    router.push('/login');
   }
 
   // =========================
-  // FILTRO
+  // COMENTAR
   // =========================
-  const topicosFiltrados = topicos.filter(t => {
-    const cat = categorias.find(c => c.id === t.category_id);
+  async function comentar(topicoId) {
+    const textarea = document.getElementById(`c-${topicoId}`);
+    const conteudo = textarea?.value;
 
-    const texto = `${t.title} ${t.content} ${cat?.nome || ''}`.toLowerCase();
+    if (!conteudo?.trim()) return alert('Digite um comentário');
 
-    const matchBusca = texto.includes(busca.toLowerCase());
-    const matchCat = !categoriaFiltro || t.category_id == categoriaFiltro;
+    await supabase.from('comentarios').insert({
+      conteudo,
+      topico_id: topicoId,
+      usuario_id: user.id,
+      user_email: user.email,
+      approved: role === 'admin' || role === 'supervisor'
+    });
 
-    return matchBusca && matchCat;
-  });
+    textarea.value = '';
+    loadData();
+  }
+
+  // =========================
+  // FILTER
+  // =========================
+  const filtrados = topicos.filter(t =>
+    t.title?.toLowerCase().includes(busca.toLowerCase()) ||
+    t.content?.toLowerCase().includes(busca.toLowerCase())
+  );
 
   return (
     <div style={styles.page}>
 
-      {/* HEADER */}
-      <div style={styles.header}>
-        <div>
-          <h1 style={{ margin: 0 }}>Base de Conhecimento</h1>
-          <small>{user?.email}</small>
-        </div>
+      {/* TOP BAR */}
+      <div style={styles.topbar}>
+        
+        <h2 style={{ margin: 0 }}>Base de Conhecimento</h2>
 
-        <button onClick={logout} style={styles.logout}>
-          Sair
-        </button>
+        <div style={styles.topRight}>
+          <span>{user?.email}</span>
+
+          <button
+            onClick={() => router.push('/dashboard')}
+            style={styles.menuBtn}
+          >
+            Menu
+          </button>
+
+          <button onClick={logout} style={styles.logout}>
+            Sair
+          </button>
+        </div>
       </div>
 
-      {/* TOOLS */}
-      <div style={styles.toolbar}>
+      {/* SEARCH */}
+      <div style={styles.searchBar}>
         <input
-          placeholder="Pesquisar..."
+          placeholder="Pesquisar tópicos..."
           value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          style={styles.search}
+          onChange={e => setBusca(e.target.value)}
+          style={styles.input}
         />
-
-        <select
-          value={categoriaFiltro}
-          onChange={(e) => setCategoriaFiltro(e.target.value)}
-          style={styles.select}
-        >
-          <option value="">Todas categorias</option>
-          {categorias.map(c => (
-            <option key={c.id} value={c.id}>{c.nome}</option>
-          ))}
-        </select>
-
-        {(role === 'admin' || role === 'supervisor') && (
-          <div style={styles.buttons}>
-            <button onClick={() => location.href = '/nova-categoria'}>Nova Categoria</button>
-            <button onClick={() => location.href = '/novo-topico'}>Novo Tópico</button>
-            <button onClick={() => location.href = '/excluir-categoria'}>Excluir Categoria</button>
-          </div>
-        )}
       </div>
 
       {/* CONTENT */}
-      <div style={styles.container}>
+      <div style={styles.grid}>
 
-        {topicosFiltrados.map(t => {
-          const cat = categorias.find(c => c.id === t.category_id);
+        {filtrados.map(t => {
+
+          const comentarios = comentariosMap[t.id] || [];
 
           return (
             <div key={t.id} style={styles.card}>
-              <h2>{t.title}</h2>
-              <span style={styles.tag}>{cat?.nome || 'Sem categoria'}</span>
+
+              <h3>{t.title}</h3>
               <p>{t.content}</p>
 
-              <div style={styles.commentBox}>
+              {/* COMMENTS */}
+              <div style={styles.comments}>
                 <strong>Comentários</strong>
 
-                {(comentariosMap[t.id] || []).map(c => (
+                {comentarios.map(c => (
                   <div key={c.id} style={styles.comment}>
                     <b>{c.user_email}</b>
                     <p>{c.conteudo}</p>
                   </div>
                 ))}
+
+                {/* INPUT */}
+                <textarea
+                  id={`c-${t.id}`}
+                  placeholder="Escreva um comentário..."
+                  style={styles.textarea}
+                />
+
+                <button
+                  onClick={() => comentar(t.id)}
+                  style={styles.btn}
+                >
+                  Comentar
+                </button>
               </div>
+
             </div>
           );
         })}
@@ -165,53 +193,62 @@ export default function Base() {
 }
 
 // =========================
-// STYLES
+// STYLE
 // =========================
 const styles = {
+
   page: {
-    padding: 30,
+    padding: 25,
     background: '#111',
     color: '#fff',
     minHeight: '100vh'
   },
 
-  header: {
+  topbar: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20
   },
 
+  topRight: {
+    display: 'flex',
+    gap: 10,
+    alignItems: 'center'
+  },
+
+  menuBtn: {
+    padding: '10px 14px',
+    background: '#444',
+    color: '#fff',
+    border: 0,
+    borderRadius: 8,
+    cursor: 'pointer'
+  },
+
   logout: {
-    padding: '10px 16px',
+    padding: '10px 14px',
     background: '#d32f2f',
     color: '#fff',
     border: 0,
-    borderRadius: 8
+    borderRadius: 8,
+    cursor: 'pointer'
   },
 
-  toolbar: {
-    display: 'flex',
-    gap: 10,
-    flexWrap: 'wrap',
+  searchBar: {
     marginBottom: 20
   },
 
-  search: {
-    padding: 10,
-    flex: 1
+  input: {
+    width: '100%',
+    padding: 12,
+    borderRadius: 8,
+    border: '1px solid #333',
+    background: '#1a1a1a',
+    color: '#fff'
   },
 
-  select: {
-    padding: 10
-  },
-
-  buttons: {
-    display: 'flex',
-    gap: 10
-  },
-
-  container: {
+  grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
     gap: 20
@@ -223,15 +260,7 @@ const styles = {
     borderRadius: 12
   },
 
-  tag: {
-    display: 'inline-block',
-    background: '#333',
-    padding: '4px 8px',
-    borderRadius: 6,
-    marginBottom: 10
-  },
-
-  commentBox: {
+  comments: {
     marginTop: 15,
     borderTop: '1px solid #333',
     paddingTop: 10
@@ -242,5 +271,26 @@ const styles = {
     padding: 10,
     background: '#2a2a2a',
     borderRadius: 8
+  },
+
+  textarea: {
+    width: '100%',
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 8,
+    background: '#111',
+    color: '#fff',
+    border: '1px solid #333'
+  },
+
+  btn: {
+    marginTop: 8,
+    padding: 10,
+    width: '100%',
+    borderRadius: 8,
+    border: 0,
+    background: '#FFD700',
+    cursor: 'pointer',
+    fontWeight: 'bold'
   }
 };
