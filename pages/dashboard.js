@@ -7,130 +7,117 @@ export default function Dashboard() {
 
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [pendingTopics, setPendingTopics] = useState([]);
-  const [logs, setLogs] = useState([]);
+  const [avisos, setAvisos] = useState([]);
+  const [novoAviso, setNovoAviso] = useState("");
 
-  // AUTH
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      setUser(user);
-
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      setProfile(profileData);
-
-      if (!profileData || !["admin", "supervisor"].includes(profileData.role)) {
-        router.push("/base");
-      }
-    }
-
-    load();
+    init();
   }, []);
 
-  // LOAD TOPICS
-  useEffect(() => {
-    async function loadPending() {
-      const { data } = await supabase
-        .from("topics")
-        .select("*")
-        .eq("status", "pending")
-        .order("id", { ascending: false });
+  async function init() {
+    const { data: { user } } = await supabase.auth.getUser();
 
-      setPendingTopics(data || []);
+    if (!user) {
+      router.push("/login");
+      return;
     }
 
-    loadPending();
-  }, []);
+    setUser(user);
 
-  // LOAD LOGS
-  useEffect(() => {
-    async function loadLogs() {
-      const { data } = await supabase
-        .from("audit_log")
-        .select("*")
-        .order("created_at", { ascending: false });
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
-      setLogs(data || []);
-    }
+    setProfile(profile);
 
-    loadLogs();
-  }, []);
-
-  // ACTIONS
-  async function approveTopic(id) {
-    await supabase.from("topics").update({ status: "approved" }).eq("id", id);
-    setPendingTopics(prev => prev.filter(t => t.id !== id));
+    loadAvisos();
   }
 
-  async function rejectTopic(id) {
-    await supabase.from("topics").delete().eq("id", id);
-    setPendingTopics(prev => prev.filter(t => t.id !== id));
+  async function loadAvisos() {
+    const { data } = await supabase
+      .from("avisos")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    setAvisos(data || []);
   }
 
-  if (!user) return <p>Carregando...</p>;
+  async function criarAviso() {
+    if (!novoAviso.trim()) return;
+
+    await supabase.from("avisos").insert({
+      conteudo: novoAviso,
+      user_id: user.id
+    });
+
+    setNovoAviso("");
+    loadAvisos();
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
+  const isAdmin =
+    profile?.role === "admin" || profile?.role === "supervisor";
 
   return (
     <div style={{ padding: 20 }}>
 
-      <h1>🔐 Painel Administrativo</h1>
+      <h1>Dashboard</h1>
 
-      {/* ================= MENU ================= */}
-      <div style={{ marginBottom: 20, display: "flex", gap: 10, flexWrap: "wrap" }}>
+      {/* MENU PRINCIPAL */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
 
         <button onClick={() => router.push("/base")}>
-          📚 Base de Conhecimento
+          Base de Conhecimento
         </button>
 
         <button onClick={() => router.push("/auditoria")}>
-          📊 Auditoria
+          Auditoria
         </button>
 
         <button onClick={() => router.push("/usuarios")}>
-          👤 Usuários
+          Usuários
         </button>
 
         <button onClick={() => router.push("/treinamento")}>
-          🎓 Treinamento
+          Treinamento
         </button>
 
         <button onClick={() => router.push("/atendimento")}>
-          💬 Atendimento
+          Atendimento
+        </button>
+
+        <button onClick={logout}>
+          Sair
         </button>
 
       </div>
 
-      {/* ================= TOPICS ================= */}
-      <h2>📌 Tópicos Pendentes</h2>
+      {/* AVISOS */}
+      <h2>📢 Informações Importantes</h2>
 
-      {pendingTopics.length === 0 && <p>Nenhum tópico pendente</p>}
-
-      {pendingTopics.map(t => (
-        <div key={t.id} style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}>
-          <h3>{t.title}</h3>
-          <p>{t.description}</p>
-
-          <button onClick={() => approveTopic(t.id)}>✔ Aprovar</button>
-          <button onClick={() => rejectTopic(t.id)}>❌ Rejeitar</button>
+      {isAdmin && (
+        <div style={{ marginBottom: 20 }}>
+          <textarea
+            value={novoAviso}
+            onChange={(e) => setNovoAviso(e.target.value)}
+            placeholder="Novo aviso..."
+            style={{ width: "100%", height: 80 }}
+          />
+          <button onClick={criarAviso}>
+            Publicar aviso
+          </button>
         </div>
-      ))}
+      )}
 
-      {/* ================= AUDIT ================= */}
-      <h2 style={{ marginTop: 40 }}>📊 Auditoria</h2>
-
-      {logs.map(log => (
-        <div key={log.id} style={{ borderBottom: "1px solid #eee", padding: 5 }}>
-          <strong>{log.action}</strong> → {log.table_name}
+      {avisos.map((a) => (
+        <div key={a.id} style={{ padding: 10, border: "1px solid #ccc", marginBottom: 10 }}>
+          {a.conteudo}
         </div>
       ))}
 
