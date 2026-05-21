@@ -12,7 +12,7 @@ export default function Base() {
   const [categorias, setCategorias] = useState([]);
   const [comentariosMap, setComentariosMap] = useState({});
 
-  const [busca, setBusca] = useState('');
+  const [categoriaFiltro, setCategoriaFiltro] = useState('');
 
   // =========================
   // INIT
@@ -103,28 +103,23 @@ export default function Base() {
   }
 
   // =========================
-  // FILTER
+  // FILTRO
   // =========================
-  const filtrados = topicos.filter(t =>
-    t.title?.toLowerCase().includes(busca.toLowerCase()) ||
-    t.content?.toLowerCase().includes(busca.toLowerCase())
-  );
+  const filtrados = categoriaFiltro
+    ? topicos.filter(t => t.category_id == categoriaFiltro)
+    : topicos;
 
   return (
     <div style={styles.page}>
 
-      {/* TOP BAR */}
-      <div style={styles.topbar}>
-        
-        <h2 style={{ margin: 0 }}>Base de Conhecimento</h2>
+      {/* HEADER */}
+      <div style={styles.header}>
+        <h2>Base de Conhecimento</h2>
 
-        <div style={styles.topRight}>
+        <div style={styles.userBox}>
           <span>{user?.email}</span>
 
-          <button
-            onClick={() => router.push('/dashboard')}
-            style={styles.menuBtn}
-          >
+          <button onClick={() => router.push('/dashboard')} style={styles.menu}>
             Menu
           </button>
 
@@ -134,17 +129,42 @@ export default function Base() {
         </div>
       </div>
 
-      {/* SEARCH */}
-      <div style={styles.searchBar}>
-        <input
-          placeholder="Pesquisar tópicos..."
-          value={busca}
-          onChange={e => setBusca(e.target.value)}
-          style={styles.input}
-        />
+      {/* TOOLS */}
+      <div style={styles.toolbar}>
+
+        {/* FILTRO CATEGORIA */}
+        <select
+          value={categoriaFiltro}
+          onChange={(e) => setCategoriaFiltro(e.target.value)}
+          style={styles.select}
+        >
+          <option value="">Todas categorias</option>
+          {categorias.map(c => (
+            <option key={c.id} value={c.id}>
+              {c.nome}
+            </option>
+          ))}
+        </select>
+
+        {/* BOTÕES ADMIN */}
+        {(role === 'admin' || role === 'supervisor') && (
+          <div style={styles.buttons}>
+            <button onClick={() => router.push('/nova-categoria')} style={styles.btn}>
+              Nova Categoria
+            </button>
+
+            <button onClick={() => router.push('/novo-topico')} style={styles.btn}>
+              Novo Tópico
+            </button>
+
+            <button onClick={() => router.push('/excluir-categoria')} style={styles.btnDanger}>
+              Excluir Categoria
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* CONTENT */}
+      {/* LISTA */}
       <div style={styles.grid}>
 
         {filtrados.map(t => {
@@ -157,7 +177,7 @@ export default function Base() {
               <h3>{t.title}</h3>
               <p>{t.content}</p>
 
-              {/* COMMENTS */}
+              {/* COMENTÁRIOS */}
               <div style={styles.comments}>
                 <strong>Comentários</strong>
 
@@ -168,18 +188,15 @@ export default function Base() {
                   </div>
                 ))}
 
-                {/* INPUT */}
+                {/* INPUT COMENTÁRIO */}
                 <textarea
                   id={`c-${t.id}`}
                   placeholder="Escreva um comentário..."
                   style={styles.textarea}
                 />
 
-                <button
-                  onClick={() => comentar(t.id)}
-                  style={styles.btn}
-                >
-                  Comentar
+                <button onClick={() => comentar(t.id)} style={styles.send}>
+                  Enviar
                 </button>
               </div>
 
@@ -204,48 +221,65 @@ const styles = {
     minHeight: '100vh'
   },
 
-  topbar: {
+  header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20
   },
 
-  topRight: {
+  userBox: {
     display: 'flex',
     gap: 10,
     alignItems: 'center'
   },
 
-  menuBtn: {
-    padding: '10px 14px',
+  menu: {
+    padding: '8px 12px',
     background: '#444',
     color: '#fff',
     border: 0,
-    borderRadius: 8,
-    cursor: 'pointer'
+    borderRadius: 8
   },
 
   logout: {
-    padding: '10px 14px',
+    padding: '8px 12px',
     background: '#d32f2f',
     color: '#fff',
     border: 0,
-    borderRadius: 8,
-    cursor: 'pointer'
+    borderRadius: 8
   },
 
-  searchBar: {
-    marginBottom: 20
+  toolbar: {
+    display: 'flex',
+    gap: 10,
+    marginBottom: 20,
+    flexWrap: 'wrap'
   },
 
-  input: {
-    width: '100%',
-    padding: 12,
+  select: {
+    padding: 10
+  },
+
+  buttons: {
+    display: 'flex',
+    gap: 10
+  },
+
+  btn: {
+    padding: '8px 12px',
+    background: '#FFD700',
+    border: 0,
     borderRadius: 8,
-    border: '1px solid #333',
-    background: '#1a1a1a',
-    color: '#fff'
+    fontWeight: 'bold'
+  },
+
+  btnDanger: {
+    padding: '8px 12px',
+    background: '#d32f2f',
+    color: '#fff',
+    border: 0,
+    borderRadius: 8
   },
 
   grid: {
@@ -283,14 +317,13 @@ const styles = {
     border: '1px solid #333'
   },
 
-  btn: {
+  send: {
     marginTop: 8,
     padding: 10,
     width: '100%',
-    borderRadius: 8,
-    border: 0,
     background: '#FFD700',
-    cursor: 'pointer',
+    border: 0,
+    borderRadius: 8,
     fontWeight: 'bold'
   }
 };
