@@ -1,99 +1,297 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
-export default function BaseNovo() {
-  const [status, setStatus] = useState("carregando...");
+export default function Base() {
   const [user, setUser] = useState(null);
+  const [role, setRole] = useState("user");
+
   const [topicos, setTopicos] = useState([]);
-  const [comentarios, setComentarios] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [comentariosMap, setComentariosMap] = useState({});
+
+  const [busca, setBusca] = useState("");
+  const [categoriaFiltro, setCategoriaFiltro] = useState("");
 
   useEffect(() => {
     init();
   }, []);
 
   async function init() {
-    try {
-      setStatus("verificando login...");
+    const { data: { session } } = await supabase.auth.getSession();
 
-      const { data: { session }, error } =
-        await supabase.auth.getSession();
+    if (!session?.user) return;
 
-      console.log("SESSION:", session);
-      console.log("ERROR:", error);
+    setUser(session.user);
 
-      if (!session?.user) {
-        setStatus("não logado");
-        return;
-      }
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", session.user.id)
+      .single();
 
-      setUser(session.user);
+    setRole(profile?.role || "user");
 
-      setStatus("carregando tópicos...");
-
-      const { data: tops, error: errTop } = await supabase
-        .from("topicos")
-        .select("*");
-
-      console.log("TOPICOS:", tops, errTop);
-
-      const { data: coms, error: errCom } = await supabase
-        .from("comentarios")
-        .select("*");
-
-      console.log("COMENTARIOS:", coms, errCom);
-
-      setTopicos(tops || []);
-      setComentarios(coms || []);
-
-      setStatus("ok");
-
-    } catch (err) {
-      console.error(err);
-      setStatus("erro: " + err.message);
-    }
+    loadData();
   }
 
-  function comentariosDoTopico(id) {
-    return comentarios.filter((c) => c.topico_id === id);
+  async function loadData() {
+    const { data: tops } = await supabase.from("topicos").select("*");
+    const { data: cats } = await supabase.from("categorias").select("*");
+    const { data: coms } = await supabase.from("comentarios").select("*");
+
+    const map = {};
+    (coms || []).forEach((c) => {
+      if (!map[c.topico_id]) map[c.topico_id] = [];
+      map[c.topico_id].push(c);
+    });
+
+    setTopicos(tops || []);
+    setCategorias(cats || []);
+    setComentariosMap(map);
   }
 
-  if (status !== "ok") {
+  async function comentar(id) {
+    const input = document.getElementById("c-" + id);
+    if (!input.value.trim()) return;
+
+    await supabase.from("comentarios").insert({
+      conteudo: input.value,
+      topico_id: id,
+      usuario_id: user.id,
+      user_email: user.email,
+      approved: role !== "user"
+    });
+
+    input.value = "";
+    loadData();
+  }
+
+  const filtrados = topicos.filter((t) => {
+    const cat = categorias.find((c) => c.id === t.category_id);
+
     return (
-      <div style={{ padding: 20, color: "#fff", background: "#111", minHeight: "100vh" }}>
-        <h2>Base de Conhecimento</h2>
-        <p>Status: {status}</p>
-      </div>
+      `${t.title} ${t.content} ${cat?.nome || ""}`
+        .toLowerCase()
+        .includes(busca.toLowerCase()) &&
+      (!categoriaFiltro || t.category_id == categoriaFiltro)
     );
-  }
+  });
 
   return (
-    <div style={{ padding: 20, color: "#fff", background: "#111", minHeight: "100vh" }}>
+    <div style={styles.page}>
 
-      <h1>Base de Conhecimento</h1>
-
-      {topicos.length === 0 && <p>Nenhum tópico encontrado</p>}
-
-      {topicos.map((t) => (
-        <div key={t.id} style={{ background: "#222", padding: 15, marginBottom: 20 }}>
-
-          <h2>{t.title || "sem título"}</h2>
-          <p>{t.content || t.conteudo || "sem conteúdo"}</p>
-
-          <hr />
-
-          <h3>Comentários</h3>
-
-          {comentariosDoTopico(t.id).map((c) => (
-            <div key={c.id} style={{ background: "#333", padding: 10, marginBottom: 5 }}>
-              <strong>{c.user_email || "anon"}</strong>
-              <p>{c.conteudo}</p>
-            </div>
-          ))}
-
-          <textarea id={"c-" + t.id} />
+      {/* TOP BAR */}
+      <div style={styles.topbar}>
+        <div>
+          <h2 style={{ margin: 0 }}>Base de Conhecimento</h2>
+          <small style={{ opacity: 0.7 }}>{user?.email}</small>
         </div>
-      ))}
 
+        <div style={{ display: "flex", gap: 10 }}>
+          <button style={styles.btnGhost}>Menu</button>
+          <button style={styles.btnDanger}>Sair</button>
+        </div>
+      </div>
+
+      {/* FILTROS */}
+      <div style={styles.filters}>
+        <input
+          placeholder="Pesquisar tópicos..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          style={styles.input}
+        />
+
+        <select
+          value={categoriaFiltro}
+          onChange={(e) => setCategoriaFiltro(e.target.value)}
+          style={styles.input}
+        >
+          <option value="">Todas categorias</option>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nome}
+            </option>
+          ))}
+        </select>
+
+        {(role === "admin" || role === "supervisor") && (
+          <>
+            <button style={styles.btn}>Nova Categoria</button>
+            <button style={styles.btn}>Novo Tópico</button>
+            <button style={styles.btnDanger}>Excluir Categoria</button>
+          </>
+        )}
+      </div>
+
+      {/* TOPICOS */}
+      <div style={styles.grid}>
+        {filtrados.map((t) => {
+          const cat = categorias.find((c) => c.id === t.category_id);
+
+          return (
+            <div key={t.id} style={styles.card}>
+
+              <div style={styles.cardHeader}>
+                <h3>{t.title}</h3>
+                <span style={styles.tag}>{cat?.nome}</span>
+              </div>
+
+              <p style={{ opacity: 0.85 }}>{t.content}</p>
+
+              {/* COMENTÁRIOS */}
+              <div style={styles.comments}>
+                <strong>Comentários</strong>
+
+                {(comentariosMap[t.id] || [])
+                  .filter((c) =>
+                    role === "admin" || role === "supervisor"
+                      ? true
+                      : c.approved
+                  )
+                  .map((c) => (
+                    <div key={c.id} style={styles.comment}>
+                      <b>{c.user_email}</b>
+                      <p>{c.conteudo}</p>
+                    </div>
+                  ))}
+
+                {user && (
+                  <div style={{ marginTop: 10 }}>
+                    <textarea id={`c-${t.id}`} style={styles.textarea} />
+                    <button
+                      onClick={() => comentar(t.id)}
+                      style={styles.btnSmall}
+                    >
+                      Comentar
+                    </button>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
+
+/* =========================
+   STYLE MODERNO
+========================= */
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#0f0f10",
+    color: "#fff",
+    padding: 20,
+  },
+
+  topbar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+
+  filters: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    marginBottom: 20,
+  },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+    gap: 20,
+  },
+
+  card: {
+    background: "#1c1c1f",
+    padding: 15,
+    borderRadius: 12,
+    boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+  },
+
+  cardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  tag: {
+    background: "#333",
+    padding: "3px 10px",
+    borderRadius: 8,
+    fontSize: 12,
+  },
+
+  comments: {
+    marginTop: 15,
+    paddingTop: 10,
+    borderTop: "1px solid #333",
+  },
+
+  comment: {
+    background: "#2a2a2a",
+    padding: 8,
+    marginTop: 8,
+    borderRadius: 8,
+  },
+
+  input: {
+    padding: 10,
+    borderRadius: 8,
+    border: "1px solid #333",
+    background: "#111",
+    color: "#fff",
+  },
+
+  textarea: {
+    width: "100%",
+    minHeight: 60,
+    borderRadius: 8,
+    background: "#111",
+    color: "#fff",
+    border: "1px solid #333",
+  },
+
+  btn: {
+    padding: "10px 14px",
+    borderRadius: 8,
+    border: "none",
+    background: "#FFD700",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+
+  btnSmall: {
+    marginTop: 5,
+    padding: "6px 10px",
+    borderRadius: 6,
+    background: "#FFD700",
+    border: "none",
+    cursor: "pointer",
+  },
+
+  btnDanger: {
+    padding: "10px 14px",
+    borderRadius: 8,
+    border: "none",
+    background: "#d32f2f",
+    color: "#fff",
+    cursor: "pointer",
+  },
+
+  btnGhost: {
+    padding: "10px 14px",
+    borderRadius: 8,
+    border: "1px solid #444",
+    background: "transparent",
+    color: "#fff",
+    cursor: "pointer",
+  },
+};
