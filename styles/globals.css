@@ -1,18 +1,45 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
 body {
-  background-color: #000;
-  color: #FFD700;
+  background-color: #020617;
+  color: #ffffff;
+
   font-family: Arial, sans-serif;
+
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 button {
   background-color: #FFD700;
   color: #000;
+
   border: none;
-  padding: 10px;
-  margin: 5px;
+
+  padding: 10px 14px;
+
+  border-radius: 8px;
+
   cursor: pointer;
+
+  transition: 0.2s;
 }
 
 button:hover {
-  background-color: #FFA500;
+  background-color: #ffcc00;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
 }
