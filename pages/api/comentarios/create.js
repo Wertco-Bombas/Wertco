@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { checkAdmin } from '../../../lib/checkAdmin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -6,16 +7,33 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-
   try {
-
     if (req.method !== 'POST') {
-
-      return res.status(405).json({
-        error: 'Método não permitido'
-      });
+      return res.status(405).json({ error: 'Método não permitido' });
     }
 
+    // =========================
+    // AUTH (SEGURANÇA REAL)
+    // =========================
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.replace('Bearer ', '');
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { data: userData, error: userErr } =
+      await supabase.auth.getUser(token);
+
+    const user = userData?.user;
+
+    if (userErr || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // =========================
+    // BODY
+    // =========================
     const body = req.body || {};
 
     const conteudo =
@@ -23,78 +41,49 @@ export default async function handler(req, res) {
         ? body.conteudo.trim()
         : '';
 
-    const topico_id =
-      Number(body.topico_id);
-
-    const usuario_id =
-      body.usuario_id || null;
-
-    const user_email =
-      body.usuario_email || null;
-
-    const imagem =
-      body.imagem || null;
+    const topico_id = Number(body.topico_id);
+    const imagem = body.imagem || null;
 
     if (!conteudo) {
-
-      return res.status(400).json({
-        error: 'Conteúdo vazio'
-      });
+      return res.status(400).json({ error: 'Conteúdo vazio' });
     }
 
     if (!topico_id) {
-
-      return res.status(400).json({
-        error: 'Tópico inválido'
-      });
+      return res.status(400).json({ error: 'Tópico inválido' });
     }
 
-    // BUSCA ROLE DO USUÁRIO
+    // =========================
+    // ROLE REAL (NUNCA DO CLIENTE)
+    // =========================
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, email')
+      .eq('id', user.id)
+      .single();
 
-    let role = 'user';
+    const role = profile?.role || 'user';
 
-    if (usuario_id) {
+    const approved = ['admin', 'supervisor'].includes(role);
 
-      const { data: profile } =
-        await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', usuario_id)
-          .single();
-
-      role = profile?.role || 'user';
-    }
-
-    // ADMIN E SUPERVISOR JÁ APROVAM AUTOMÁTICO
-
-    const approved =
-      role === 'admin' ||
-      role === 'supervisor';
-
+    // =========================
     // INSERT
-
-    const { data, error } =
-      await supabase
-        .from('comentarios')
-        .insert([
-          {
-            conteudo,
-            topico_id,
-            usuario_id,
-            user_email,
-            imagem,
-            approved
-          }
-        ])
-        .select();
+    // =========================
+    const { data, error } = await supabase
+      .from('comentarios')
+      .insert([
+        {
+          conteudo,
+          topico_id,
+          usuario_id: user.id,
+          usuario_email: user.email,
+          imagem,
+          approved
+        }
+      ])
+      .select();
 
     if (error) {
-
-      console.error(error);
-
-      return res.status(500).json({
-        error: error.message
-      });
+      return res.status(500).json({ error: error.message });
     }
 
     return res.status(200).json({
@@ -103,9 +92,6 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-
-    console.error(err);
-
     return res.status(500).json({
       error: err.message
     });
