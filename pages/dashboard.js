@@ -6,10 +6,6 @@ export default function Dashboard() {
   const router = useRouter();
 
   const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-
-  const [avisos, setAvisos] = useState([]);
-  const [novoAviso, setNovoAviso] = useState("");
 
   useEffect(() => {
     init();
@@ -26,47 +22,12 @@ export default function Dashboard() {
     }
 
     setUser(user);
-
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    setProfile(profileData);
-
-    loadAvisos();
-  }
-
-  async function loadAvisos() {
-    const { data } = await supabase
-      .from("avisos")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    setAvisos(data || []);
-  }
-
-  async function criarAviso() {
-    if (!novoAviso.trim()) return;
-
-    await supabase.from("avisos").insert({
-      conteudo: novoAviso,
-      user_id: user.id
-    });
-
-    setNovoAviso("");
-    loadAvisos();
   }
 
   async function logout() {
     await supabase.auth.signOut();
     router.push("/login");
   }
-
-  const isAdmin =
-    profile?.role === "admin" ||
-    profile?.role === "supervisor";
 
   return (
     <div
@@ -116,9 +77,8 @@ export default function Dashboard() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: 20,
-          marginBottom: 50
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 20
         }}
       >
 
@@ -162,75 +122,13 @@ export default function Dashboard() {
           <span>Atendimento</span>
         </button>
 
-      </div>
-
-      {/* AVISOS */}
-      <div
-        style={{
-          background: "#1e1e1e",
-          padding: 25,
-          borderRadius: 12
-        }}
-      >
-        <h2 style={{ marginTop: 0 }}>
-          📢 Informações Importantes
-        </h2>
-
-        {isAdmin && (
-          <div style={{ marginBottom: 25 }}>
-
-            <textarea
-              value={novoAviso}
-              onChange={(e) => setNovoAviso(e.target.value)}
-              placeholder="Digite um aviso..."
-              style={{
-                width: "100%",
-                minHeight: 120,
-                padding: 15,
-                borderRadius: 10,
-                border: "1px solid #444",
-                background: "#111",
-                color: "#fff",
-                fontSize: 16,
-                marginBottom: 10
-              }}
-            />
-
-            <button
-              onClick={criarAviso}
-              style={{
-                padding: "12px 18px",
-                borderRadius: 8,
-                border: "none",
-                background: "#f5c518",
-                color: "#000",
-                fontWeight: "bold",
-                cursor: "pointer"
-              }}
-            >
-              Publicar Aviso
-            </button>
-
-          </div>
-        )}
-
-        {avisos.length === 0 && (
-          <p>Nenhum aviso publicado.</p>
-        )}
-
-        {avisos.map((a) => (
-          <div
-            key={a.id}
-            style={{
-              background: "#2a2a2a",
-              padding: 15,
-              borderRadius: 10,
-              marginBottom: 10
-            }}
-          >
-            {a.conteudo}
-          </div>
-        ))}
+        <button
+          onClick={() => router.push("/avisos")}
+          style={cardStyle}
+        >
+          🔔
+          <span>Avisos</span>
+        </button>
 
       </div>
 
