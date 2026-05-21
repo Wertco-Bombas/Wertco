@@ -1,24 +1,55 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 export async function checkSupervisor(req) {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return { ok: false, status: 401, error: 'No token' };
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.replace('Bearer ', '');
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+    if (!token) {
+      return { ok: false, status: 401, error: 'No token' };
+    }
 
-  const { data: { user } } = await supabase.auth.getUser(token);
-  if (!user) return { ok: false, status: 401, error: 'Invalid user' };
+    // 🔐 valida usuário com service role
+    const { data: userData, error: userError } =
+      await supabaseAdmin.auth.getUser(token);
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+    if (userError || !userData?.user) {
+      return { ok: false, status: 401, error: 'Invalid user' };
+    }
 
-  if (!profile || profile.role !== 'supervisor') {
-    return { ok: false, status: 403, error: 'Not supervisor' };
+    const user = userData.user;
+
+    // 🔎 busca role
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return { ok: false, status: 403, error: 'Profile not found' };
+    }
+
+    if (profile.role !== 'supervisor') {
+      return { ok: false, status: 403, error: 'Not supervisor' };
+    }
+
+    return {
+      ok: true,
+      user,
+      role: profile.role
+    };
+
+  } catch (err) {
+    return {
+      ok: false,
+      status: 500,
+      error: err.message
+    };
   }
-
-  return { ok: true, user };
 }
