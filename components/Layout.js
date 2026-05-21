@@ -23,11 +23,7 @@ export default function Layout({ children }) {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
 
-      if (session?.user) {
-        setUserEmail(session.user.email || '');
-      } else {
-        setUserEmail('');
-      }
+      setUserEmail(session?.user?.email || '');
     });
 
     return () => {
@@ -38,50 +34,41 @@ export default function Layout({ children }) {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    window.location.href = '/login';
+    router.push('/login');
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="base-container">
 
-      {/* HEADER GLOBAL */}
-      <header className="bg-gray-800 shadow-md">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      {/* HEADER */}
+      <div className="topbar">
 
-          {/* LOGO */}
-          <div className="text-2xl font-bold">
-            Wertco
-          </div>
-
-          {/* USER AREA */}
-          <div className="flex items-center gap-3">
-
-            <span className="text-sm text-gray-300">
-              {userEmail || 'Convidado'}
-            </span>
-
-            <button
-              className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded"
-              onClick={() => router.push('/dashboard')}
-            >
-              Menu
-            </button>
-
-            <button
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded"
-              onClick={handleLogout}
-            >
-              Sair
-            </button>
-
-          </div>
+        <div className="topbar-left">
+          <h2>Wertco</h2>
         </div>
-      </header>
 
-      {/* CONTEÚDO DA PÁGINA */}
-      <main className="max-w-6xl mx-auto px-6 py-8">
+        <div className="topbar-right">
+
+          <span className="user-email">
+            {userEmail || 'Convidado'}
+          </span>
+
+          <button onClick={() => router.push('/base')}>
+            Menu
+          </button>
+
+          <button onClick={handleLogout}>
+            Sair
+          </button>
+
+        </div>
+
+      </div>
+
+      {/* CONTEÚDO */}
+      <div>
         {children}
-      </main>
+      </div>
 
     </div>
   );
