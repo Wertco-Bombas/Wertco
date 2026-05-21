@@ -30,105 +30,68 @@ export default function Dashboard() {
   }
 
   return (
-    <div
-      style={{
-        padding: 30,
-        maxWidth: 1400,
-        margin: "0 auto"
-      }}
-    >
+    <div className="dashboard-container">
 
       {/* TOPO */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 40
-        }}
-      >
+      <div className="dashboard-top">
+
         <div>
-          <h1 style={{ margin: 0 }}>
+          <h1 className="dashboard-title">
             Dashboard
           </h1>
 
-          <p style={{ opacity: 0.7 }}>
+          <p className="dashboard-user">
             Bem-vindo {user?.email}
           </p>
         </div>
 
         <button
           onClick={logout}
-          style={{
-            padding: "12px 20px",
-            fontSize: 16,
-            borderRadius: 8,
-            border: "none",
-            background: "#d32f2f",
-            color: "#fff",
-            cursor: "pointer"
-          }}
+          className="logout-btn"
         >
           Sair
         </button>
+
       </div>
 
-      {/* BOTÕES */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 20
-        }}
-      >
+      {/* GRID */}
+      <div className="dashboard-grid">
 
-        <button
+        <DashboardCard
+          icon="📚"
+          title="Base de Conhecimento"
           onClick={() => router.push("/base")}
-          style={cardStyle}
-        >
-          📚
-          <span>Base de Conhecimento</span>
-        </button>
+        />
 
-        <button
+        <DashboardCard
+          icon="📊"
+          title="Auditoria"
           onClick={() => router.push("/auditoria")}
-          style={cardStyle}
-        >
-          📊
-          <span>Auditoria</span>
-        </button>
+        />
 
-        <button
+        <DashboardCard
+          icon="👥"
+          title="Usuários"
           onClick={() => router.push("/usuarios")}
-          style={cardStyle}
-        >
-          👥
-          <span>Usuários</span>
-        </button>
+        />
 
-        <button
+        <DashboardCard
+          icon="🎓"
+          title="Treinamento"
           onClick={() => router.push("/treinamento")}
-          style={cardStyle}
-        >
-          🎓
-          <span>Treinamento</span>
-        </button>
+        />
 
-        <button
+        <DashboardCard
+          icon="💬"
+          title="Atendimento"
           onClick={() => router.push("/atendimento")}
-          style={cardStyle}
-        >
-          💬
-          <span>Atendimento</span>
-        </button>
+        />
 
-        <button
+        <DashboardCard
+          icon="🔔"
+          title="Avisos"
           onClick={() => router.push("/avisos")}
-          style={cardStyle}
-        >
-          🔔
-          <span>Avisos</span>
-        </button>
+        />
 
       </div>
 
@@ -136,21 +99,19 @@ export default function Dashboard() {
   );
 }
 
-const cardStyle = {
-  height: 180,
-  borderRadius: 16,
-  border: "none",
-  background: "#242424",
-  color: "#fff",
-  fontSize: 24,
-  fontWeight: "bold",
-  cursor: "pointer",
+function DashboardCard({ icon, title, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="dashboard-card"
+    >
+      <div className="dashboard-icon">
+        {icon}
+      </div>
 
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  gap: 15,
-
-  transition: "0.2s"
-};
+      <span>
+        {title}
+      </span>
+    </button>
+  );
+}
