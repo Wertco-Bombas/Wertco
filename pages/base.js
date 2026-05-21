@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import '../styles/base.css';
 
 export default function Base() {
 
@@ -230,8 +229,6 @@ export default function Base() {
 
     <div className='base-container'>
 
-      {/* TOPO */}
-
       <div className='topbar'>
 
         <div className='topbar-left'>
@@ -252,11 +249,7 @@ export default function Base() {
 
       </div>
 
-      {/* TOOLBAR */}
-
       <div className='toolbar'>
-
-        {/* PESQUISA */}
 
         <input
           type='text'
@@ -267,8 +260,6 @@ export default function Base() {
             setBusca(e.target.value)
           }
         />
-
-        {/* FILTROS */}
 
         <div className='toolbar-row'>
 
@@ -336,8 +327,6 @@ export default function Base() {
 
       </div>
 
-      {/* TOPICOS */}
-
       {topicosFiltrados.map(t => {
 
         const categoria =
@@ -366,8 +355,6 @@ export default function Base() {
             </div>
 
             <p>{t.conteudo}</p>
-
-            {/* COMENTARIOS */}
 
             <div className='comentarios'>
 
@@ -455,8 +442,6 @@ export default function Base() {
                   })}
 
               </ul>
-
-              {/* INPUT */}
 
               {user && (
 
