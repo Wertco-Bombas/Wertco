@@ -1,10 +1,7 @@
-// pages/usuario.js
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
 
-// 🔐 PERMISSÃO LOCAL
 function canAccess(role, allowed) {
   return allowed.includes(role);
 }
@@ -15,15 +12,20 @@ const supabase = createClient(
 );
 
 export default function Usuario() {
+
   const [usuarios, setUsuarios] = useState([]);
-  const [usuariosBase, setUsuariosBase] = useState([]); // 👈 base original (IMPORTANTE)
+  const [usuariosBase, setUsuariosBase] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
   const [userRole, setUserRole] = useState(null);
+
   const router = useRouter();
 
-  // 🔐 checar permissões
+  // =========================
+  // ROLE CHECK
+  // =========================
   async function checkRole() {
+
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session?.user) {
@@ -38,6 +40,7 @@ export default function Usuario() {
       .single();
 
     const role = data?.role || 'user';
+
     setUserRole(role);
 
     if (!canAccess(role, ['admin', 'supervisor'])) {
@@ -48,32 +51,39 @@ export default function Usuario() {
     return true;
   }
 
-  // 🔥 LISTAR USUÁRIOS
+  // =========================
+  // FETCH USERS
+  // =========================
   async function fetchUsers() {
+
     setLoading(true);
 
     try {
+
       const { data: { session } } = await supabase.auth.getSession();
+
       const token = session?.access_token;
 
       const resp = await fetch('/api/admin/list-users', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`
         }
       });
 
       const json = await resp.json();
 
       if (!resp.ok) {
-        alert('Erro ao listar usuários: ' + (json?.error || resp.statusText));
+        alert(json?.error || 'Erro ao listar usuários');
         setUsuarios([]);
         setUsuariosBase([]);
-      } else {
-        const users = json.users || [];
-        setUsuarios(users);
-        setUsuariosBase(users); // 👈 guarda base original
+        return;
       }
+
+      const users = json.users || [];
+
+      setUsuarios(users);
+      setUsuariosBase(users);
 
     } catch (err) {
       alert(err.message);
@@ -82,15 +92,26 @@ export default function Usuario() {
     }
   }
 
+  // =========================
+  // INIT
+  // =========================
   useEffect(() => {
+
     (async () => {
+
       const ok = await checkRole();
+
       if (ok) await fetchUsers();
+
     })();
+
   }, []);
 
-  // 🔍 SEARCH CORRIGIDO
+  // =========================
+  // SEARCH
+  // =========================
   function handleSearch(value) {
+
     const q = value.toLowerCase();
 
     if (!q) {
@@ -106,21 +127,26 @@ export default function Usuario() {
     setUsuarios(filtered);
   }
 
-  // 🗑 DELETE USER
+  // =========================
+  // DELETE USER
+  // =========================
   async function handleExcluir(userId) {
+
     if (!confirm('Confirma exclusão deste usuário?')) return;
 
     setProcessingId(userId);
 
     try {
+
       const { data: { session } } = await supabase.auth.getSession();
+
       const token = session?.access_token;
 
       const resp = await fetch('/api/admin/delete-user', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ userId })
       });
@@ -128,10 +154,11 @@ export default function Usuario() {
       const json = await resp.json();
 
       if (!resp.ok) {
-        alert('Erro: ' + (json?.error || resp.statusText));
-      } else {
-        await fetchUsers();
+        alert(json?.error || 'Erro ao excluir');
+        return;
       }
+
+      await fetchUsers();
 
     } catch (err) {
       alert(err.message);
@@ -140,28 +167,42 @@ export default function Usuario() {
     }
   }
 
-  // 🔐 proteção visual
+  // =========================
+  // UI PROTECTION
+  // =========================
   if (!canAccess(userRole, ['admin', 'supervisor'])) {
     return <div style={{ padding: 20 }}>Verificando permissões...</div>;
   }
 
+  // =========================
+  // RENDER
+  // =========================
   return (
+
     <div className="page">
+
       <div className="container">
 
         <div className="topicHeader">
           <h2 className="topicTitle">Usuários</h2>
-          <div className="badge">{usuarios.length} cadastrados</div>
+
+          <div className="badge">
+            {usuarios.length} cadastrados
+          </div>
         </div>
 
         <div className="card">
 
           {/* SEARCH + BUTTON */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: 12
+          }}>
 
             <input
               type="text"
-              placeholder="Pesquisar usuário por email ou username..."
+              placeholder="Pesquisar por email ou username..."
               className="search-bar"
               style={{ maxWidth: 420 }}
               onChange={(e) => handleSearch(e.target.value)}
@@ -182,12 +223,13 @@ export default function Usuario() {
             {loading ? (
               <div>Carregando...</div>
             ) : usuarios.length === 0 ? (
-              <div>Nenhum usuário encontrado.</div>
+              <div>Nenhum usuário encontrado</div>
             ) : (
               <table style={{ width: '100%' }}>
+
                 <thead>
                   <tr>
-                    <th>Email / Username</th>
+                    <th>Usuário</th>
                     <th>Função</th>
                     <th>Criado em</th>
                     <th>Ações</th>
@@ -195,31 +237,50 @@ export default function Usuario() {
                 </thead>
 
                 <tbody>
+
                   {usuarios.map(u => (
+
                     <tr key={u.id}>
+
                       <td>
-                        {u.username || u.email || '(sem identificação)'}
+                        {u.username || u.email}
                       </td>
-                      <td>{u.role || 'user'}</td>
+
+                      <td>
+                        {u.role || 'user'}
+                      </td>
+
                       <td>
                         {u.created_at
                           ? new Date(u.created_at).toLocaleString()
-                          : ''}
+                          : '-'}
                       </td>
+
                       <td>
-                        <button onClick={() => router.push(`/usuario/${u.id}`)}>
+
+                        <button
+                          onClick={() =>
+                            router.push(`/usuario/${u.id}`)
+                          }
+                        >
                           Ver
                         </button>
 
                         <button
-                          onClick={() => handleExcluir(u.id)}
                           disabled={processingId === u.id}
+                          onClick={() => handleExcluir(u.id)}
                         >
-                          {processingId === u.id ? '...' : 'Excluir'}
+                          {processingId === u.id
+                            ? '...'
+                            : 'Excluir'}
                         </button>
+
                       </td>
+
                     </tr>
+
                   ))}
+
                 </tbody>
 
               </table>
@@ -230,6 +291,7 @@ export default function Usuario() {
         </div>
 
       </div>
+
     </div>
   );
 }
