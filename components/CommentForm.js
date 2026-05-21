@@ -3,62 +3,51 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-export default function CommentForm({ topicoId = 1 }) {
+export default function CommentForm({ topicoId }) {
   const [conteudo, setConteudo] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
 
     setLoading(true);
     setErrorMsg(null);
-    setResult(null);
+    setSuccessMsg(null);
 
     try {
-      // pega sessão (opcional)
       const {
         data: { session }
       } = await supabase.auth.getSession();
 
+      if (!session?.user) {
+        throw new Error('Você precisa estar logado');
+      }
+
       const payload = {
         conteudo: conteudo.trim(),
         topico_id: Number(topicoId),
-        usuario_id: session?.user?.id || null,
-        usuario_email: session?.user?.email || null
+        usuario_id: session.user.id,
+        user_email: session.user.email,
+        approved: false // sempre começa pendente
       };
 
-      console.log('PAYLOAD ENVIADO:', payload);
-
       if (!payload.conteudo) {
-        setErrorMsg('Digite um comentário');
-        setLoading(false);
-        return;
+        throw new Error('Digite um comentário');
       }
 
-      const response = await fetch('/api/comentarios/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      const { error } = await supabase
+        .from('comentarios')
+        .insert(payload);
 
-      const data = await response.json();
+      if (error) throw error;
 
-      console.log('RESPOSTA:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao salvar comentário');
-      }
-
-      setResult(data);
       setConteudo('');
+      setSuccessMsg('Comentário enviado para aprovação');
 
     } catch (err) {
-      console.error(err);
-      setErrorMsg(err.message || 'Erro inesperado');
+      setErrorMsg(err.message);
     } finally {
       setLoading(false);
     }
@@ -67,39 +56,27 @@ export default function CommentForm({ topicoId = 1 }) {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
       <form onSubmit={handleSubmit}>
-        <label style={{ display: 'block', marginBottom: 8 }}>
-          <strong>Comentário</strong>
-        </label>
 
         <textarea
           value={conteudo}
           onChange={(e) => setConteudo(e.target.value)}
           rows={4}
-          style={{
-            width: '100%',
-            padding: 8,
-            fontSize: 14
-          }}
+          style={{ width: '100%', padding: 8 }}
           placeholder="Escreva seu comentário..."
         />
 
-        <div style={{ marginTop: 8 }}>
-          <button type="submit" disabled={loading}>
-            {loading ? 'Enviando...' : 'Enviar comentário'}
-          </button>
-        </div>
+        <button disabled={loading}>
+          {loading ? 'Enviando...' : 'Enviar comentário'}
+        </button>
+
       </form>
 
       {errorMsg && (
-        <div style={{ marginTop: 12, color: 'crimson' }}>
-          <strong>Erro:</strong> {errorMsg}
-        </div>
+        <p style={{ color: 'red' }}>{errorMsg}</p>
       )}
 
-      {result && (
-        <pre style={{ marginTop: 12, background: '#f6f6f6', padding: 12 }}>
-          {JSON.stringify(result, null, 2)}
-        </pre>
+      {successMsg && (
+        <p style={{ color: 'green' }}>{successMsg}</p>
       )}
     </div>
   );
