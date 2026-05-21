@@ -1,18 +1,20 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { useRouter } from 'next/router';
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
+import { useRouter } from "next/router";
 
 export default function Base() {
   const router = useRouter();
 
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState('user');
+  const [role, setRole] = useState("user");
 
   const [topicos, setTopicos] = useState([]);
   const [categorias, setCategorias] = useState([]);
-  const [comentariosMap, setComentariosMap] = useState({});
 
-  const [categoriaFiltro, setCategoriaFiltro] = useState('');
+  const [busca, setBusca] = useState("");
+  const [categoriaFiltro, setCategoriaFiltro] = useState("");
+
+  const [comentariosMap, setComentariosMap] = useState({});
 
   // =========================
   // INIT
@@ -22,25 +24,26 @@ export default function Base() {
   }, []);
 
   async function init() {
-    const { data } = await supabase.auth.getUser();
-    const u = data?.user;
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (!u) {
-      router.push('/login');
+    if (!session?.user) {
+      router.push("/login");
       return;
     }
 
-    setUser(u);
+    setUser(session.user);
 
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', u.id)
+      .from("profiles")
+      .select("role")
+      .eq("id", session.user.id)
       .single();
 
-    setRole(profile?.role || 'user');
+    setRole(profile?.role || "user");
 
-    loadData();
+    await loadData();
   }
 
   // =========================
@@ -48,22 +51,22 @@ export default function Base() {
   // =========================
   async function loadData() {
     const { data: tops } = await supabase
-      .from('topicos')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("topicos")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     const { data: cats } = await supabase
-      .from('categorias')
-      .select('*');
+      .from("categorias")
+      .select("*");
 
     const { data: coms } = await supabase
-      .from('comentarios')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("comentarios")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     const map = {};
 
-    (coms || []).forEach(c => {
+    (coms || []).forEach((c) => {
       if (!map[c.topico_id]) map[c.topico_id] = [];
       map[c.topico_id].push(c);
     });
@@ -78,98 +81,141 @@ export default function Base() {
   // =========================
   async function logout() {
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push("/login");
   }
 
   // =========================
   // COMENTAR
   // =========================
   async function comentar(topicoId) {
-    const textarea = document.getElementById(`c-${topicoId}`);
-    const conteudo = textarea?.value;
+    const textarea = document.getElementById(`comentario-${topicoId}`);
+    const fileInput = document.getElementById(`foto-${topicoId}`);
 
-    if (!conteudo?.trim()) return alert('Digite um comentário');
+    const conteudo = textarea.value;
 
-    await supabase.from('comentarios').insert({
+    if (!conteudo.trim()) return alert("Digite um comentário");
+
+    let imagem = null;
+
+    const file = fileInput?.files?.[0];
+
+    if (file) {
+      const nome = Date.now() + "-" + file.name;
+
+      const { error } = await supabase.storage
+        .from("comentarios")
+        .upload(nome, file);
+
+      if (!error) {
+        const { data } = supabase.storage
+          .from("comentarios")
+          .getPublicUrl(nome);
+
+        imagem = data.publicUrl;
+      }
+    }
+
+    await supabase.from("comentarios").insert({
       conteudo,
       topico_id: topicoId,
       usuario_id: user.id,
       user_email: user.email,
-      approved: role === 'admin' || role === 'supervisor'
+      approved: role === "admin" || role === "supervisor",
+      imagem,
     });
 
-    textarea.value = '';
+    textarea.value = "";
+    fileInput.value = "";
+
     loadData();
   }
 
   // =========================
   // FILTRO
   // =========================
-  const filtrados = categoriaFiltro
-    ? topicos.filter(t => t.category_id == categoriaFiltro)
-    : topicos;
+  const topicosFiltrados = topicos.filter((t) => {
+    const categoria = categorias.find((c) => c.id === t.category_id);
 
+    const texto = `
+      ${t.title || ""}
+      ${t.content || ""}
+      ${categoria?.nome || ""}
+    `.toLowerCase();
+
+    const matchBusca = texto.includes(busca.toLowerCase());
+    const matchCat = !categoriaFiltro || t.category_id == categoriaFiltro;
+
+    return matchBusca && matchCat;
+  });
+
+  // =========================
+  // UI
+  // =========================
   return (
     <div style={styles.page}>
 
-      {/* HEADER */}
+      {/* HEADER GLOBAL */}
       <div style={styles.header}>
         <h2>Base de Conhecimento</h2>
 
-        <div style={styles.userBox}>
+        <div style={{ display: "flex", gap: 10 }}>
           <span>{user?.email}</span>
 
-          <button onClick={() => router.push('/dashboard')} style={styles.menu}>
+          <button onClick={() => router.push("/dashboard")}>
             Menu
           </button>
 
-          <button onClick={logout} style={styles.logout}>
+          <button onClick={logout} style={{ background: "red", color: "#fff" }}>
             Sair
           </button>
         </div>
       </div>
 
-      {/* TOOLS */}
+      {/* TOOLBAR */}
       <div style={styles.toolbar}>
+        <input
+          placeholder="Pesquisar tópicos..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          style={styles.search}
+        />
 
-        {/* FILTRO CATEGORIA */}
         <select
           value={categoriaFiltro}
           onChange={(e) => setCategoriaFiltro(e.target.value)}
-          style={styles.select}
         >
           <option value="">Todas categorias</option>
-          {categorias.map(c => (
+          {categorias.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nome}
             </option>
           ))}
         </select>
 
-        {/* BOTÕES ADMIN */}
-        {(role === 'admin' || role === 'supervisor') && (
-          <div style={styles.buttons}>
-            <button onClick={() => router.push('/nova-categoria')} style={styles.btn}>
+        {(role === "admin" || role === "supervisor") && (
+          <>
+            <button onClick={() => router.push("/nova-categoria")}>
               Nova Categoria
             </button>
 
-            <button onClick={() => router.push('/novo-topico')} style={styles.btn}>
+            <button onClick={() => router.push("/novo-topico")}>
               Novo Tópico
             </button>
 
-            <button onClick={() => router.push('/excluir-categoria')} style={styles.btnDanger}>
+            <button onClick={() => router.push("/excluir-categoria")}>
               Excluir Categoria
             </button>
-          </div>
+          </>
         )}
       </div>
 
-      {/* LISTA */}
-      <div style={styles.grid}>
+      {/* CONTEÚDO OCUPANDO TELA TODA */}
+      <div style={styles.content}>
 
-        {filtrados.map(t => {
-
-          const comentarios = comentariosMap[t.id] || [];
+        {topicosFiltrados.map((t) => {
+          const categoria = categorias.find(
+            (c) => c.id === t.category_id
+          );
 
           return (
             <div key={t.id} style={styles.card}>
@@ -177,153 +223,92 @@ export default function Base() {
               <h3>{t.title}</h3>
               <p>{t.content}</p>
 
+              <small>{categoria?.nome}</small>
+
               {/* COMENTÁRIOS */}
-              <div style={styles.comments}>
-                <strong>Comentários</strong>
+              <div style={{ marginTop: 20 }}>
+                <h4>Comentários</h4>
 
-                {comentarios.map(c => (
-                  <div key={c.id} style={styles.comment}>
-                    <b>{c.user_email}</b>
-                    <p>{c.conteudo}</p>
-                  </div>
-                ))}
+                {(comentariosMap[t.id] || [])
+                  .filter((c) =>
+                    role === "admin" || role === "supervisor"
+                      ? true
+                      : c.approved
+                  )
+                  .map((c) => (
+                    <div key={c.id} style={styles.comment}>
+                      <strong>{c.user_email}</strong>
+                      <p>{c.conteudo}</p>
 
-                {/* INPUT COMENTÁRIO */}
-                <textarea
-                  id={`c-${t.id}`}
-                  placeholder="Escreva um comentário..."
-                  style={styles.textarea}
-                />
+                      {c.imagem && (
+                        <img
+                          src={c.imagem}
+                          style={{ width: 200 }}
+                        />
+                      )}
+                    </div>
+                  ))}
 
-                <button onClick={() => comentar(t.id)} style={styles.send}>
-                  Enviar
+                <textarea id={`comentario-${t.id}`} />
+                <input type="file" id={`foto-${t.id}`} />
+
+                <button onClick={() => comentar(t.id)}>
+                  Comentar
                 </button>
               </div>
-
             </div>
           );
         })}
-
       </div>
     </div>
   );
 }
 
 // =========================
-// STYLE
+// STYLE (FULL WIDTH FIX)
 // =========================
 const styles = {
-
   page: {
-    padding: 25,
-    background: '#111',
-    color: '#fff',
-    minHeight: '100vh'
+    width: "100%",
+    minHeight: "100vh",
+    background: "#111",
+    color: "#fff",
   },
 
   header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20
-  },
-
-  userBox: {
-    display: 'flex',
-    gap: 10,
-    alignItems: 'center'
-  },
-
-  menu: {
-    padding: '8px 12px',
-    background: '#444',
-    color: '#fff',
-    border: 0,
-    borderRadius: 8
-  },
-
-  logout: {
-    padding: '8px 12px',
-    background: '#d32f2f',
-    color: '#fff',
-    border: 0,
-    borderRadius: 8
+    display: "flex",
+    justifyContent: "space-between",
+    padding: 20,
+    borderBottom: "1px solid #333",
   },
 
   toolbar: {
-    display: 'flex',
+    display: "flex",
     gap: 10,
-    marginBottom: 20,
-    flexWrap: 'wrap'
+    padding: 20,
+    flexWrap: "wrap",
   },
 
-  select: {
-    padding: 10
+  search: {
+    padding: 10,
+    minWidth: 250,
   },
 
-  buttons: {
-    display: 'flex',
-    gap: 10
-  },
-
-  btn: {
-    padding: '8px 12px',
-    background: '#FFD700',
-    border: 0,
-    borderRadius: 8,
-    fontWeight: 'bold'
-  },
-
-  btnDanger: {
-    padding: '8px 12px',
-    background: '#d32f2f',
-    color: '#fff',
-    border: 0,
-    borderRadius: 8
-  },
-
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-    gap: 20
+  content: {
+    padding: 20,
   },
 
   card: {
-    background: '#1e1e1e',
+    background: "#1e1e1e",
     padding: 20,
-    borderRadius: 12
-  },
-
-  comments: {
-    marginTop: 15,
-    borderTop: '1px solid #333',
-    paddingTop: 10
+    marginBottom: 20,
+    borderRadius: 10,
   },
 
   comment: {
+    background: "#2a2a2a",
+    padding: 10,
     marginTop: 10,
-    padding: 10,
-    background: '#2a2a2a',
-    borderRadius: 8
+    borderRadius: 6,
   },
-
-  textarea: {
-    width: '100%',
-    marginTop: 10,
-    padding: 10,
-    borderRadius: 8,
-    background: '#111',
-    color: '#fff',
-    border: '1px solid #333'
-  },
-
-  send: {
-    marginTop: 8,
-    padding: 10,
-    width: '100%',
-    background: '#FFD700',
-    border: 0,
-    borderRadius: 8,
-    fontWeight: 'bold'
-  }
 };
