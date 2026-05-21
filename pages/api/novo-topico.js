@@ -1,7 +1,11 @@
-await logAction({
+import { audit } from '../lib/audit';
+
+await audit({
   acao: 'CREATE_TOPICO',
   entidade: 'topicos',
-  usuario_id: user.id,
-  usuario_email: user.email,
-  payload: { titulo }
+  usuario: user,
+  status: 'success',
+  payload: {
+    titulo: titulo || null
+  }
 });
