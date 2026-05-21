@@ -363,13 +363,24 @@ export default function Base() {
               <ul>
 
                 {(comentariosMap[t.id] || [])
-                  .filter(c =>
+                  .filter(c => {
 
-                    role === 'admin' ||
-                    role === 'supervisor'
-                      ? true
-                      : c.approved
-                  )
+  // admin e supervisor veem tudo
+  if (
+    role === 'admin' ||
+    role === 'supervisor'
+  ) {
+    return true;
+  }
+
+  // usuário vê aprovados
+  if (c.approved) {
+    return true;
+  }
+
+  // usuário vê os próprios pendentes
+  return c.usuario_id === user?.id;
+})
                   .map(c => {
 
                     const isOwner =
