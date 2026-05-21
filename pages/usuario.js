@@ -6,13 +6,13 @@ export default function Usuarios() {
   const router = useRouter();
 
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState("");
+  const [profile, setProfile] = useState(null);
 
   const [usuarios, setUsuarios] = useState([]);
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [newRole, setNewRole] = useState("usuario");
+  const [senha, setSenha] = useState("");
+  const [role, setRole] = useState("usuario");
 
   const [loading, setLoading] = useState(false);
 
@@ -22,45 +22,52 @@ export default function Usuarios() {
 
   async function init() {
     const {
-      data: { session }
-    } = await supabase.auth.getSession();
+      data: { user }
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) {
+    if (!user) {
       router.push("/login");
       return;
     }
 
-    setUser(session.user);
+    setUser(user);
 
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
       .from("profiles")
-      .select("role")
-      .eq("id", session.user.id)
+      .select("*")
+      .eq("id", user.id)
       .single();
 
-    const userRole = profile?.role || "usuario";
+    setProfile(profileData);
 
-    setRole(userRole);
-
-    if (!["admin", "supervisor"].includes(userRole)) {
+    if (!profileData || profileData.role !== "admin") {
+      alert("Apenas admin pode acessar");
       router.push("/dashboard");
       return;
     }
 
-    loadUsers(session.access_token);
+    loadUsers();
   }
 
-  async function loadUsers(token) {
-    const response = await fetch("/api/admin/list-users", {
-      headers: {
-        Authorization: `Bearer ${token}`
+  async function loadUsers() {
+    try {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+
+      const response = await fetch("/api/admin/list-users", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      const json = await response.json();
+
+      if (json.ok) {
+        setUsuarios(json.users || []);
       }
-    });
-
-    const json = await response.json();
-
-    if (json.ok) {
-      setUsuarios(json.users || []);
+    } catch (err) {
+      console.error(err);
     }
   }
 
@@ -82,72 +89,79 @@ export default function Usuarios() {
         },
         body: JSON.stringify({
           email,
-          password,
-          role: newRole
+          password: senha,
+          role
         })
       });
 
       const json = await response.json();
 
       if (!response.ok) {
-        alert(json.error || "Erro");
+        alert(json.error || "Erro ao criar usuário");
         return;
       }
 
-      alert("Usuário criado");
+      alert("Usuário criado com sucesso");
 
       setEmail("");
-      setPassword("");
-      setNewRole("usuario");
+      setSenha("");
+      setRole("usuario");
 
-      loadUsers(session.access_token);
+      loadUsers();
+
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function excluirUsuario(id) {
+    const ok = confirm("Deseja excluir este usuário?");
+    if (!ok) return;
+
+    try {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+
+      const response = await fetch("/api/admin/delete-user", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          userId: id
+        })
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        alert(json.error || "Erro ao excluir");
+        return;
+      }
+
+      loadUsers();
 
     } catch (err) {
       alert(err.message);
     }
-
-    setLoading(false);
   }
 
-  async function excluirUsuario(userId) {
-    const ok = confirm("Excluir usuário?");
-
-    if (!ok) return;
-
-    const {
-      data: { session }
-    } = await supabase.auth.getSession();
-
-    const response = await fetch("/api/admin/delete-user", {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ userId })
-    });
-
-    const json = await response.json();
-
-    if (!response.ok) {
-      alert(json.error || "Erro");
-      return;
-    }
-
-    loadUsers(session.access_token);
+  if (!user || !profile) {
+    return <p style={{ padding: 30 }}>Carregando...</p>;
   }
 
   return (
     <div className="usuarios-page">
 
-      {/* HEADER */}
       <div className="usuarios-header">
 
         <div>
           <h1>Usuários</h1>
-          <p>
-            Gerenciamento de usuários do sistema
-          </p>
+          <p>Gerencie usuários do sistema</p>
         </div>
 
         <button
@@ -159,80 +173,84 @@ export default function Usuarios() {
 
       </div>
 
-      {/* FORM */}
-      <div className="usuarios-card">
+      <div className="usuarios-grid">
 
-        <h2>Criar Usuário</h2>
+        {/* FORM */}
+        <div className="usuarios-card">
 
-        <form onSubmit={criarUsuario} className="usuarios-form">
+          <h2>Novo Usuário</h2>
 
-          <input
-            type="email"
-            placeholder="E-mail"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
+          <form onSubmit={criarUsuario}>
 
-          <input
-            type="password"
-            placeholder="Senha"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
+            <input
+              type="email"
+              placeholder="E-mail"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
 
-          <select
-            value={newRole}
-            onChange={e => setNewRole(e.target.value)}
-          >
-            <option value="usuario">Usuário</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="admin">Admin</option>
-          </select>
+            <input
+              type="password"
+              placeholder="Senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+            />
 
-          <button
-            type="submit"
-            className="btn-criar"
-            disabled={loading}
-          >
-            {loading ? "Criando..." : "Criar Usuário"}
-          </button>
-
-        </form>
-
-      </div>
-
-      {/* LISTA */}
-      <div className="usuarios-card">
-
-        <h2>Usuários Ativos</h2>
-
-        <div className="usuarios-list">
-
-          {usuarios.map(u => (
-            <div
-              key={u.id}
-              className="usuario-item"
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
             >
+              <option value="usuario">Usuário</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="admin">Admin</option>
+            </select>
 
-              <div>
-                <strong>{u.email}</strong>
+            <button
+              type="submit"
+              className="btn-salvar"
+              disabled={loading}
+            >
+              {loading ? "Criando..." : "Criar Usuário"}
+            </button>
 
-                <p>
-                  {u.role}
-                </p>
-              </div>
+          </form>
 
-              <button
-                className="btn-delete"
-                onClick={() => excluirUsuario(u.id)}
+        </div>
+
+        {/* LISTA */}
+        <div className="usuarios-card">
+
+          <h2>Usuários Ativos</h2>
+
+          <div className="usuarios-lista">
+
+            {usuarios.map((u) => (
+              <div
+                key={u.id}
+                className="usuario-item"
               >
-                Excluir
-              </button>
 
-            </div>
-          ))}
+                <div>
+                  <strong>{u.email}</strong>
+
+                  <p>
+                    {u.role}
+                  </p>
+                </div>
+
+                <button
+                  className="btn-excluir"
+                  onClick={() => excluirUsuario(u.id)}
+                >
+                  Excluir
+                </button>
+
+              </div>
+            ))}
+
+          </div>
 
         </div>
 
