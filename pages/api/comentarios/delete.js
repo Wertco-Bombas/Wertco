@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { checkAdmin } from '../../../lib/checkAdmin';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,25 +12,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { id } = req.body;
+    // =========================
+    // AUTH PADRÃO
+    // =========================
+    const auth = await checkAdmin(req);
 
-    if (!id) {
-      return res.status(400).json({ error: 'ID é obrigatório' });
-    }
-
-    // 🔐 pega token do usuário logado
+    // ⚠️ não exige admin aqui porque usuário também pode deletar próprio comentário
     const token = req.headers.authorization?.replace('Bearer ', '');
 
     if (!token) {
       return res.status(401).json({ error: 'Token ausente' });
     }
 
-    const supabaseUser = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-
-    const { data: userData, error: userError } = await supabaseUser.auth.getUser(token);
+    const { data: userData, error: userError } =
+      await supabaseAdmin.auth.getUser(token);
 
     if (userError || !userData?.user) {
       return res.status(401).json({ error: 'Usuário inválido' });
@@ -37,7 +33,28 @@ export default async function handler(req, res) {
 
     const userId = userData.user.id;
 
-    // 🔎 busca role do usuário
+    const { id } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'ID é obrigatório' });
+    }
+
+    // =========================
+    // BUSCA COMENTÁRIO
+    // =========================
+    const { data: comentario, error: fetchErr } = await supabaseAdmin
+      .from('comentarios')
+      .select('id, usuario_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !comentario) {
+      return res.status(404).json({ error: 'Comentário não encontrado' });
+    }
+
+    // =========================
+    // ROLE DO USUÁRIO
+    // =========================
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('role')
@@ -46,26 +63,21 @@ export default async function handler(req, res) {
 
     const role = profile?.role || 'user';
 
-    // 🔎 busca comentário
-    const { data: comentario } = await supabaseAdmin
-      .from('comentarios')
-      .select('id, usuario_id')
-      .eq('id', id)
-      .single();
-
-    if (!comentario) {
-      return res.status(404).json({ error: 'Comentário não encontrado' });
-    }
-
     const isOwner = comentario.usuario_id === userId;
-    const isAdmin = role === 'admin' || role === 'supervisor';
+    const isAdmin = ['admin', 'supervisor'].includes(role);
 
-    // 🚫 regra de permissão
+    // =========================
+    // PERMISSÃO
+    // =========================
     if (!isOwner && !isAdmin) {
-      return res.status(403).json({ error: 'Sem permissão para excluir este comentário' });
+      return res.status(403).json({
+        error: 'Sem permissão para excluir este comentário'
+      });
     }
 
-    // 🗑 delete
+    // =========================
+    // DELETE
+    // =========================
     const { error } = await supabaseAdmin
       .from('comentarios')
       .delete()
