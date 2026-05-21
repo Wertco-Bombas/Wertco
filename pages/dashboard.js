@@ -1,85 +1,101 @@
-// pages/dashboard.js
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import Link from 'next/link';
-import { supabase } from '../lib/supabase';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { supabase } from "../lib/supabase";
 
 export default function Dashboard() {
   const router = useRouter();
 
-  const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [pendingTopics, setPendingTopics] = useState([]);
+  const [logs, setLogs] = useState([]);
 
   useEffect(() => {
-    init();
-  }, []);
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
 
-  async function init() {
-    setLoading(true);
+      if (!user) {
+        router.push("/login");
+        return;
+      }
 
-    const { data: { session } } = await supabase.auth.getSession();
+      setUser(user);
 
-    if (!session?.user) {
-      router.push('/login');
-      return;
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      setProfile(profileData);
+
+      if (!profileData || !["admin", "supervisor"].includes(profileData.role)) {
+        router.push("/base");
+      }
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
-      .single();
+    load();
+  }, []);
 
-    setUserRole(profile?.role || 'user');
-    setLoading(false);
+  useEffect(() => {
+    async function loadPending() {
+      const { data } = await supabase
+        .from("topics")
+        .select("*")
+        .eq("status", "pending");
+
+      setPendingTopics(data || []);
+    }
+
+    loadPending();
+  }, []);
+
+  useEffect(() => {
+    async function loadLogs() {
+      const { data } = await supabase
+        .from("audit_log")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      setLogs(data || []);
+    }
+
+    loadLogs();
+  }, []);
+
+  async function approveTopic(id) {
+    await supabase.from("topics").update({ status: "approved" }).eq("id", id);
+    setPendingTopics(prev => prev.filter(t => t.id !== id));
   }
 
-  const isPrivileged = ['admin', 'supervisor'].includes(userRole);
-
-  if (loading) {
-    return <div style={{ padding: 20 }}>Carregando dashboard...</div>;
+  async function rejectTopic(id) {
+    await supabase.from("topics").delete().eq("id", id);
+    setPendingTopics(prev => prev.filter(t => t.id !== id));
   }
+
+  if (!user) return <p>Carregando...</p>;
 
   return (
-    <div className="page">
-      <div className="container">
+    <div style={{ padding: 20 }}>
+      <h1>Dashboard</h1>
 
-        <div className="centerArea">
+      <h2>📌 Pendentes</h2>
 
-          <nav className="menuGrid">
-
-            <Link href="/base" className="menuBtn">
-              Base de Conhecimento
-            </Link>
-
-            <Link href="/treinamento" className="menuBtn">
-              Treinamento
-            </Link>
-
-            {/* 🔥 SÓ ADMIN/SUPERVISOR */}
-            {isPrivileged && (
-              <Link href="/auditoria" className="menuBtn">
-                Auditoria
-              </Link>
-            )}
-
-            {/* 🔥 SÓ ADMIN/SUPERVISOR */}
-            {isPrivileged && (
-              <Link href="/usuario" className="menuBtn">
-                Usuários
-              </Link>
-            )}
-
-            <Link href="/atendimento" className="menuBtn">
-              Atendimento
-            </Link>
-
-          </nav>
-
+      {pendingTopics.map(t => (
+        <div key={t.id}>
+          <h3>{t.title}</h3>
+          <button onClick={() => approveTopic(t.id)}>Aprovar</button>
+          <button onClick={() => rejectTopic(t.id)}>Rejeitar</button>
         </div>
+      ))}
 
-      </div>
+      <h2>📊 Logs</h2>
+
+      {logs.map(l => (
+        <div key={l.id}>
+          {l.action} - {l.created_at}
+        </div>
+      ))}
     </div>
   );
 }
