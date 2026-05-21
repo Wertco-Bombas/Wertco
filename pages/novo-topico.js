@@ -81,14 +81,12 @@ export default function NovoTopico() {
     const { data, error } = await supabase
       .from('topicos')
       .insert([
-        {
-          titulo: titulo.trim(),
-          conteudo: conteudo || '',
-          categoria_id: categoriaId,
-          user_email: user?.email,
-          usuario_id: user?.id,
-          approved
-        }
+       {
+  title: titulo.trim(),
+  content: conteudo || '',
+  category_id: categoriaId,
+  status: 'ativo'
+}
       ])
       .select()
       .single();
