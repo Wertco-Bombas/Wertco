@@ -1,114 +1,126 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
 
-export default function Base() {
+export default function Dashboard() {
+  const router = useRouter();
+
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState("user");
+  const [profile, setProfile] = useState(null);
 
-  const [topicos, setTopicos] = useState([]);
-  const [categorias, setCategorias] = useState([]);
-  const [comentariosMap, setComentariosMap] = useState({});
+  const [pendingTopics, setPendingTopics] = useState([]);
+  const [logs, setLogs] = useState([]);
 
-  const [busca, setBusca] = useState("");
-  const [categoriaFiltro, setCategoriaFiltro] = useState("");
-
+  // AUTH CHECK
   useEffect(() => {
-    init();
-  }, []);
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
 
-  async function init() {
-    const { data: { session } } = await supabase.auth.getSession();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
 
-    const currentUser = session?.user || null;
-    setUser(currentUser);
+      setUser(user);
 
-    if (currentUser) {
-      const { data: profile } = await supabase
+      const { data: profileData } = await supabase
         .from("profiles")
-        .select("role")
-        .eq("id", currentUser.id)
+        .select("*")
+        .eq("id", user.id)
         .single();
 
-      setRole(profile?.role || "user");
+      setProfile(profileData);
+
+      if (!profileData || !["admin", "supervisor"].includes(profileData.role)) {
+        router.push("/base");
+        return;
+      }
     }
 
-    loadData();
+    load();
+  }, []);
+
+  // LOAD PENDING TOPICS
+  useEffect(() => {
+    async function loadPending() {
+      const { data } = await supabase
+        .from("topics")
+        .select("*")
+        .eq("status", "pending")
+        .order("id", { ascending: false });
+
+      setPendingTopics(data || []);
+    }
+
+    loadPending();
+  }, []);
+
+  // LOAD LOGS
+  useEffect(() => {
+    async function loadLogs() {
+      const { data } = await supabase
+        .from("audit_log")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      setLogs(data || []);
+    }
+
+    loadLogs();
+  }, []);
+
+  // APPROVE
+  async function approveTopic(id) {
+    await supabase
+      .from("topics")
+      .update({ status: "approved" })
+      .eq("id", id);
+
+    setPendingTopics(prev => prev.filter(t => t.id !== id));
   }
 
-  async function loadData() {
-    const { data: tops } = await supabase.from("topicos").select("*");
-    const { data: cats } = await supabase.from("categorias").select("*");
-    const { data: coms } = await supabase.from("comentarios").select("*");
+  // REJECT
+  async function rejectTopic(id) {
+    await supabase
+      .from("topics")
+      .delete()
+      .eq("id", id);
 
-    const map = {};
-    (coms || []).forEach(c => {
-      if (!map[c.topico_id]) map[c.topico_id] = [];
-      map[c.topico_id].push(c);
-    });
-
-    setTopicos(tops || []);
-    setCategorias(cats || []);
-    setComentariosMap(map);
+    setPendingTopics(prev => prev.filter(t => t.id !== id));
   }
 
-  async function comentar(topicoId) {
-    const textarea = document.getElementById(`comentario-${topicoId}`);
-    const conteudo = textarea.value;
-
-    if (!conteudo.trim()) return alert("Digite um comentário");
-
-    await supabase.from("comentarios").insert({
-      conteudo,
-      topico_id: topicoId,
-      usuario_id: user.id,
-      user_email: user.email,
-      approved: role === "admin" || role === "supervisor"
-    });
-
-    textarea.value = "";
-    loadData();
-  }
-
-  const topicosFiltrados = topicos.filter(t => {
-    const texto = `${t.title} ${t.content}`.toLowerCase();
-    return texto.includes(busca.toLowerCase());
-  });
+  if (!user) return <p>Carregando...</p>;
 
   return (
-    <div className="base-container">
+    <div style={{ padding: 20 }}>
 
-      <h1>Base de Conhecimento</h1>
+      <h1>🔐 Painel Administrativo</h1>
 
-      <input
-        placeholder="Pesquisar..."
-        value={busca}
-        onChange={e => setBusca(e.target.value)}
-      />
+      {/* TOPICS PENDENTES */}
+      <h2>📌 Tópicos Pendentes</h2>
 
-      {topicosFiltrados.map(t => (
+      {pendingTopics.length === 0 && <p>Nenhum tópico pendente</p>}
+
+      {pendingTopics.map(t => (
         <div key={t.id} style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}>
+          <h3>{t.title}</h3>
+          <p>{t.description}</p>
+          <p><strong>Categoria:</strong> {t.category}</p>
 
-          <h2>{t.title}</h2>
-          <p>{t.content}</p>
+          <button onClick={() => approveTopic(t.id)}>✔ Aprovar</button>
+          <button onClick={() => rejectTopic(t.id)}>❌ Rejeitar</button>
+        </div>
+      ))}
 
-          <h4>Comentários</h4>
+      {/* AUDITORIA */}
+      <h2 style={{ marginTop: 40 }}>📊 Auditoria</h2>
 
-          {(comentariosMap[t.id] || []).map(c => (
-            <div key={c.id}>
-              <strong>{c.user_email}</strong>
-              <p>{c.conteudo}</p>
-            </div>
-          ))}
-
-          {user && (
-            <div>
-              <textarea id={`comentario-${t.id}`} />
-              <button onClick={() => comentar(t.id)}>
-                Comentar
-              </button>
-            </div>
-          )}
-
+      {logs.map(log => (
+        <div key={log.id} style={{ borderBottom: "1px solid #eee", padding: 5 }}>
+          <p>
+            <strong>{log.action}</strong> → {log.table_name} → {log.record_id}
+          </p>
+          <small>{log.created_at}</small>
         </div>
       ))}
 
