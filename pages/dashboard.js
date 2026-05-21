@@ -16,7 +16,9 @@ export default function Dashboard() {
   }, []);
 
   async function init() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
 
     if (!user) {
       router.push("/login");
@@ -110,11 +112,11 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* BOTÕES GRANDES */}
+      {/* BOTÕES */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          gridTemplateColumns: "repeat(2, 1fr)",
           gap: 20,
           marginBottom: 50
         }}
