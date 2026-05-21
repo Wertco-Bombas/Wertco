@@ -330,3 +330,111 @@ body{
   .formStack{ width:100%; }
   .menuGrid{ grid-template-columns: 1fr; }
 }
+/* =========================
+USUÁRIOS
+========================= */
+
+.usuarios-page {
+  padding: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.usuarios-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.usuarios-header h1 {
+  margin: 0;
+  font-size: 34px;
+}
+
+.usuarios-header p {
+  opacity: 0.7;
+}
+
+.usuarios-grid {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 25px;
+}
+
+.usuarios-card {
+  background: #1f1f1f;
+  border-radius: 16px;
+  padding: 25px;
+}
+
+.usuarios-card h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.usuarios-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.usuarios-card input,
+.usuarios-card select {
+  height: 50px;
+  border-radius: 10px;
+  border: 1px solid #333;
+  background: #2c2c2c;
+  color: white;
+  padding: 0 15px;
+  font-size: 15px;
+}
+
+.btn-salvar {
+  height: 50px;
+  border: none;
+  border-radius: 10px;
+  background: #f5b400;
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-voltar {
+  height: 45px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 10px;
+  background: #444;
+  color: white;
+  cursor: pointer;
+}
+
+.usuarios-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.usuario-item {
+  background: #2b2b2b;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.usuario-item p {
+  margin: 5px 0 0;
+  opacity: 0.7;
+}
+
+.btn-excluir {
+  background: #c62828;
+  border: none;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
