@@ -1,9 +1,6 @@
 .base-container {
-  background: #0f172a;
-  color: #fff;
   min-height: 100vh;
   padding: 30px;
-  font-family: Arial, sans-serif;
 
   display: flex;
   flex-direction: column;
@@ -40,17 +37,6 @@
   font-size: 13px;
 }
 
-.topbar-right button {
-  background: #dc2626;
-  border: none;
-  color: white;
-
-  padding: 10px 14px;
-  border-radius: 8px;
-
-  cursor: pointer;
-}
-
 /* TOOLBAR */
 
 .toolbar {
@@ -76,8 +62,8 @@
 .search-bar {
   width: 100%;
 
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #111827;
+  border: 1px solid #374151;
 
   color: white;
 
@@ -95,8 +81,8 @@
 /* SELECT */
 
 .toolbar select {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #111827;
+  border: 1px solid #374151;
 
   color: white;
 
@@ -113,38 +99,15 @@
   gap: 10px;
 }
 
-.toolbar-buttons button,
-.btn {
-  background: #ffd700;
-  color: #111;
-
-  border: none;
-  padding: 10px 14px;
-
-  border-radius: 10px;
-  font-weight: bold;
-
-  cursor: pointer;
-}
-
-.toolbar-buttons button:hover,
-.btn:hover {
-  opacity: 0.9;
-}
-
-.btnYellow {
-  background: #ffd700;
-}
-
-/* TOPICOS */
+/* TÓPICOS */
 
 .topico-card {
   width: 100%;
   max-width: 900px;
 
-  background: #1e293b;
+  background: #111827;
 
-  border: 1px solid #334155;
+  border: 1px solid #374151;
 
   border-radius: 16px;
 
@@ -179,14 +142,12 @@
   font-weight: bold;
 }
 
-/* TEXTO */
-
 .topico-card p {
   color: #ddd;
   line-height: 1.6;
 }
 
-/* COMENTARIOS */
+/* COMENTÁRIOS */
 
 .comentarios {
   margin-top: 25px;
@@ -206,7 +167,7 @@
 .comentarios li {
   background: #0f172a;
 
-  border: 1px solid #334155;
+  border: 1px solid #374151;
 
   padding: 16px;
   border-radius: 12px;
@@ -231,7 +192,7 @@
 }
 
 .comentario-acoes button {
-  background: #334155;
+  background: #374151;
   color: white;
 
   border: none;
@@ -256,7 +217,7 @@
   min-height: 90px;
 
   background: #0f172a;
-  border: 1px solid #334155;
+  border: 1px solid #374151;
 
   color: white;
 
