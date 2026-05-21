@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import '../styles/base.css';
+
 
 export default function Base() {
   const [user, setUser] = useState(null);
