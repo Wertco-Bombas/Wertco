@@ -1,292 +1,238 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import { createClient } from '@supabase/supabase-js';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { supabase } from "../lib/supabase";
 
-function canAccess(role, allowed) {
-  return allowed.includes(role);
-}
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
-export default function Usuario() {
-
-  const [usuarios, setUsuarios] = useState([]);
-  const [usuariosBase, setUsuariosBase] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [processingId, setProcessingId] = useState(null);
-  const [userRole, setUserRole] = useState(null);
-
+export default function Usuarios() {
   const router = useRouter();
 
-  // =========================
-  // ROLE CHECK
-  // =========================
-  async function checkRole() {
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState("");
 
-    const { data: { session } } = await supabase.auth.getSession();
+  const [usuarios, setUsuarios] = useState([]);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [newRole, setNewRole] = useState("usuario");
+
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    init();
+  }, []);
+
+  async function init() {
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
 
     if (!session?.user) {
-      router.push('/login');
-      return false;
+      router.push("/login");
+      return;
     }
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session.user.id)
+    setUser(session.user);
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", session.user.id)
       .single();
 
-    const role = data?.role || 'user';
+    const userRole = profile?.role || "usuario";
 
-    setUserRole(role);
+    setRole(userRole);
 
-    if (!canAccess(role, ['admin', 'supervisor'])) {
-      router.push('/dashboard');
-      return false;
+    if (!["admin", "supervisor"].includes(userRole)) {
+      router.push("/dashboard");
+      return;
     }
 
-    return true;
+    loadUsers(session.access_token);
   }
 
-  // =========================
-  // FETCH USERS
-  // =========================
-  async function fetchUsers() {
+  async function loadUsers(token) {
+    const response = await fetch("/api/admin/list-users", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const json = await response.json();
+
+    if (json.ok) {
+      setUsuarios(json.users || []);
+    }
+  }
+
+  async function criarUsuario(e) {
+    e.preventDefault();
 
     setLoading(true);
 
     try {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
 
-      const { data: { session } } = await supabase.auth.getSession();
-
-      const token = session?.access_token;
-
-      const resp = await fetch('/api/admin/list-users', {
-        method: 'GET',
+      const response = await fetch("/api/admin/create-or-get-user", {
+        method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          role: newRole
+        })
       });
 
-      const json = await resp.json();
+      const json = await response.json();
 
-      if (!resp.ok) {
-        alert(json?.error || 'Erro ao listar usuários');
-        setUsuarios([]);
-        setUsuariosBase([]);
+      if (!response.ok) {
+        alert(json.error || "Erro");
         return;
       }
 
-      const users = json.users || [];
+      alert("Usuário criado");
 
-      setUsuarios(users);
-      setUsuariosBase(users);
+      setEmail("");
+      setPassword("");
+      setNewRole("usuario");
+
+      loadUsers(session.access_token);
 
     } catch (err) {
       alert(err.message);
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   }
 
-  // =========================
-  // INIT
-  // =========================
-  useEffect(() => {
+  async function excluirUsuario(userId) {
+    const ok = confirm("Excluir usuário?");
 
-    (async () => {
+    if (!ok) return;
 
-      const ok = await checkRole();
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
 
-      if (ok) await fetchUsers();
+    const response = await fetch("/api/admin/delete-user", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ userId })
+    });
 
-    })();
+    const json = await response.json();
 
-  }, []);
-
-  // =========================
-  // SEARCH
-  // =========================
-  function handleSearch(value) {
-
-    const q = value.toLowerCase();
-
-    if (!q) {
-      setUsuarios(usuariosBase);
+    if (!response.ok) {
+      alert(json.error || "Erro");
       return;
     }
 
-    const filtered = usuariosBase.filter(u =>
-      (u.email || '').toLowerCase().includes(q) ||
-      (u.username || '').toLowerCase().includes(q)
-    );
-
-    setUsuarios(filtered);
+    loadUsers(session.access_token);
   }
 
-  // =========================
-  // DELETE USER
-  // =========================
-  async function handleExcluir(userId) {
-
-    if (!confirm('Confirma exclusão deste usuário?')) return;
-
-    setProcessingId(userId);
-
-    try {
-
-      const { data: { session } } = await supabase.auth.getSession();
-
-      const token = session?.access_token;
-
-      const resp = await fetch('/api/admin/delete-user', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ userId })
-      });
-
-      const json = await resp.json();
-
-      if (!resp.ok) {
-        alert(json?.error || 'Erro ao excluir');
-        return;
-      }
-
-      await fetchUsers();
-
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setProcessingId(null);
-    }
-  }
-
-  // =========================
-  // UI PROTECTION
-  // =========================
-  if (!canAccess(userRole, ['admin', 'supervisor'])) {
-    return <div style={{ padding: 20 }}>Verificando permissões...</div>;
-  }
-
-  // =========================
-  // RENDER
-  // =========================
   return (
+    <div className="usuarios-page">
 
-    <div className="page">
+      {/* HEADER */}
+      <div className="usuarios-header">
 
-      <div className="container">
-
-        <div className="topicHeader">
-          <h2 className="topicTitle">Usuários</h2>
-
-          <div className="badge">
-            {usuarios.length} cadastrados
-          </div>
+        <div>
+          <h1>Usuários</h1>
+          <p>
+            Gerenciamento de usuários do sistema
+          </p>
         </div>
 
-        <div className="card">
+        <button
+          className="btn-voltar"
+          onClick={() => router.push("/dashboard")}
+        >
+          Voltar
+        </button>
 
-          {/* SEARCH + BUTTON */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 12
-          }}>
+      </div>
 
-            <input
-              type="text"
-              placeholder="Pesquisar por email ou username..."
-              className="search-bar"
-              style={{ maxWidth: 420 }}
-              onChange={(e) => handleSearch(e.target.value)}
-            />
+      {/* FORM */}
+      <div className="usuarios-card">
 
-            <button
-              className="btn btnYellow"
-              onClick={() => router.push('/novo-usuario')}
+        <h2>Criar Usuário</h2>
+
+        <form onSubmit={criarUsuario} className="usuarios-form">
+
+          <input
+            type="email"
+            placeholder="E-mail"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+          />
+
+          <input
+            type="password"
+            placeholder="Senha"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+          />
+
+          <select
+            value={newRole}
+            onChange={e => setNewRole(e.target.value)}
+          >
+            <option value="usuario">Usuário</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="admin">Admin</option>
+          </select>
+
+          <button
+            type="submit"
+            className="btn-criar"
+            disabled={loading}
+          >
+            {loading ? "Criando..." : "Criar Usuário"}
+          </button>
+
+        </form>
+
+      </div>
+
+      {/* LISTA */}
+      <div className="usuarios-card">
+
+        <h2>Usuários Ativos</h2>
+
+        <div className="usuarios-list">
+
+          {usuarios.map(u => (
+            <div
+              key={u.id}
+              className="usuario-item"
             >
-              + Novo Usuário
-            </button>
 
-          </div>
+              <div>
+                <strong>{u.email}</strong>
 
-          {/* TABLE */}
-          <div style={{ marginTop: 18 }}>
+                <p>
+                  {u.role}
+                </p>
+              </div>
 
-            {loading ? (
-              <div>Carregando...</div>
-            ) : usuarios.length === 0 ? (
-              <div>Nenhum usuário encontrado</div>
-            ) : (
-              <table style={{ width: '100%' }}>
+              <button
+                className="btn-delete"
+                onClick={() => excluirUsuario(u.id)}
+              >
+                Excluir
+              </button>
 
-                <thead>
-                  <tr>
-                    <th>Usuário</th>
-                    <th>Função</th>
-                    <th>Criado em</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-
-                  {usuarios.map(u => (
-
-                    <tr key={u.id}>
-
-                      <td>
-                        {u.username || u.email}
-                      </td>
-
-                      <td>
-                        {u.role || 'user'}
-                      </td>
-
-                      <td>
-                        {u.created_at
-                          ? new Date(u.created_at).toLocaleString()
-                          : '-'}
-                      </td>
-
-                      <td>
-
-                        <button
-                          onClick={() =>
-                            router.push(`/usuario/${u.id}`)
-                          }
-                        >
-                          Ver
-                        </button>
-
-                        <button
-                          disabled={processingId === u.id}
-                          onClick={() => handleExcluir(u.id)}
-                        >
-                          {processingId === u.id
-                            ? '...'
-                            : 'Excluir'}
-                        </button>
-
-                      </td>
-
-                    </tr>
-
-                  ))}
-
-                </tbody>
-
-              </table>
-            )}
-
-          </div>
+            </div>
+          ))}
 
         </div>
 
