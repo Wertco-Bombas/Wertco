@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [pendingTopics, setPendingTopics] = useState([]);
   const [logs, setLogs] = useState([]);
 
+  // AUTH
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -37,12 +38,14 @@ export default function Dashboard() {
     load();
   }, []);
 
+  // LOAD TOPICS
   useEffect(() => {
     async function loadPending() {
       const { data } = await supabase
         .from("topics")
         .select("*")
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .order("id", { ascending: false });
 
       setPendingTopics(data || []);
     }
@@ -50,6 +53,7 @@ export default function Dashboard() {
     loadPending();
   }, []);
 
+  // LOAD LOGS
   useEffect(() => {
     async function loadLogs() {
       const { data } = await supabase
@@ -63,6 +67,7 @@ export default function Dashboard() {
     loadLogs();
   }, []);
 
+  // ACTIONS
   async function approveTopic(id) {
     await supabase.from("topics").update({ status: "approved" }).eq("id", id);
     setPendingTopics(prev => prev.filter(t => t.id !== id));
@@ -77,25 +82,58 @@ export default function Dashboard() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Dashboard</h1>
 
-      <h2>📌 Pendentes</h2>
+      <h1>🔐 Painel Administrativo</h1>
+
+      {/* ================= MENU ================= */}
+      <div style={{ marginBottom: 20, display: "flex", gap: 10, flexWrap: "wrap" }}>
+
+        <button onClick={() => router.push("/base")}>
+          📚 Base de Conhecimento
+        </button>
+
+        <button onClick={() => router.push("/auditoria")}>
+          📊 Auditoria
+        </button>
+
+        <button onClick={() => router.push("/usuarios")}>
+          👤 Usuários
+        </button>
+
+        <button onClick={() => router.push("/treinamento")}>
+          🎓 Treinamento
+        </button>
+
+        <button onClick={() => router.push("/atendimento")}>
+          💬 Atendimento
+        </button>
+
+      </div>
+
+      {/* ================= TOPICS ================= */}
+      <h2>📌 Tópicos Pendentes</h2>
+
+      {pendingTopics.length === 0 && <p>Nenhum tópico pendente</p>}
 
       {pendingTopics.map(t => (
-        <div key={t.id}>
+        <div key={t.id} style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}>
           <h3>{t.title}</h3>
-          <button onClick={() => approveTopic(t.id)}>Aprovar</button>
-          <button onClick={() => rejectTopic(t.id)}>Rejeitar</button>
+          <p>{t.description}</p>
+
+          <button onClick={() => approveTopic(t.id)}>✔ Aprovar</button>
+          <button onClick={() => rejectTopic(t.id)}>❌ Rejeitar</button>
         </div>
       ))}
 
-      <h2>📊 Logs</h2>
+      {/* ================= AUDIT ================= */}
+      <h2 style={{ marginTop: 40 }}>📊 Auditoria</h2>
 
-      {logs.map(l => (
-        <div key={l.id}>
-          {l.action} - {l.created_at}
+      {logs.map(log => (
+        <div key={log.id} style={{ borderBottom: "1px solid #eee", padding: 5 }}>
+          <strong>{log.action}</strong> → {log.table_name}
         </div>
       ))}
+
     </div>
   );
 }
