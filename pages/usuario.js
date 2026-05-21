@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { supabase } from "../lib/supabase";
+```javascript
+// pages/usuarios.js
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import { supabase } from '../lib/supabase';
 
 export default function Usuarios() {
   const router = useRouter();
@@ -9,12 +12,6 @@ export default function Usuarios() {
   const [profile, setProfile] = useState(null);
 
   const [usuarios, setUsuarios] = useState([]);
-
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [role, setRole] = useState("usuario");
-
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     init();
@@ -26,236 +23,209 @@ export default function Usuarios() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      router.push("/login");
+      router.push('/login');
       return;
     }
 
     setUser(user);
 
     const { data: profileData } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
       .single();
 
     setProfile(profileData);
-
-    if (!profileData || profileData.role !== "admin") {
-      alert("Apenas admin pode acessar");
-      router.push("/dashboard");
-      return;
-    }
 
     loadUsers();
   }
 
   async function loadUsers() {
-    try {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
 
-      const response = await fetch("/api/admin/list-users", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
+    const token = session?.access_token;
 
-      const json = await response.json();
-
-      if (json.ok) {
-        setUsuarios(json.users || []);
+    const response = await fetch('/api/admin/list-users', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`
       }
-    } catch (err) {
-      console.error(err);
+    });
+
+    const json = await response.json();
+
+    if (json?.users) {
+      setUsuarios(json.users);
     }
   }
 
-  async function criarUsuario(e) {
-    e.preventDefault();
-
-    setLoading(true);
-
-    try {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-
-      const response = await fetch("/api/admin/create-or-get-user", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          email,
-          password: senha,
-          role
-        })
-      });
-
-      const json = await response.json();
-
-      if (!response.ok) {
-        alert(json.error || "Erro ao criar usuário");
-        return;
-      }
-
-      alert("Usuário criado com sucesso");
-
-      setEmail("");
-      setSenha("");
-      setRole("usuario");
-
-      loadUsers();
-
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
+  async function logout() {
+    await supabase.auth.signOut();
+    router.push('/login');
   }
 
-  async function excluirUsuario(id) {
-    const ok = confirm("Deseja excluir este usuário?");
-    if (!ok) return;
-
-    try {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-
-      const response = await fetch("/api/admin/delete-user", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          userId: id
-        })
-      });
-
-      const json = await response.json();
-
-      if (!response.ok) {
-        alert(json.error || "Erro ao excluir");
-        return;
-      }
-
-      loadUsers();
-
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
-  if (!user || !profile) {
+  if (!user) {
     return <p style={{ padding: 30 }}>Carregando...</p>;
   }
 
   return (
-    <div className="usuarios-page">
-
-      <div className="usuarios-header">
-
+    <div
+      style={{
+        padding: 30,
+        maxWidth: 1400,
+        margin: '0 auto'
+      }}
+    >
+      {/* TOPO */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 40
+        }}
+      >
         <div>
-          <h1>Usuários</h1>
-          <p>Gerencie usuários do sistema</p>
+          <h1 style={{ margin: 0 }}>
+            Usuários
+          </h1>
+
+          <p style={{ opacity: 0.7 }}>
+            Logado como {user?.email}
+          </p>
         </div>
 
-        <button
-          className="btn-voltar"
-          onClick={() => router.push("/dashboard")}
-        >
-          Voltar
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
 
-      </div>
-
-      <div className="usuarios-grid">
-
-        {/* FORM */}
-        <div className="usuarios-card">
-
-          <h2>Novo Usuário</h2>
-
-          <form onSubmit={criarUsuario}>
-
-            <input
-              type="email"
-              placeholder="E-mail"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-
-            <input
-              type="password"
-              placeholder="Senha"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              required
-            />
-
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="usuario">Usuário</option>
-              <option value="supervisor">Supervisor</option>
-              <option value="admin">Admin</option>
-            </select>
-
+          {(profile?.role === 'admin') && (
             <button
-              type="submit"
-              className="btn-salvar"
-              disabled={loading}
+              onClick={() => router.push('/novo-usuario')}
+              style={buttonStyle}
             >
-              {loading ? "Criando..." : "Criar Usuário"}
+              + Novo Usuário
             </button>
+          )}
 
-          </form>
+          <button
+            onClick={() => router.push('/dashboard')}
+            style={menuButton}
+          >
+            Dashboard
+          </button>
 
-        </div>
-
-        {/* LISTA */}
-        <div className="usuarios-card">
-
-          <h2>Usuários Ativos</h2>
-
-          <div className="usuarios-lista">
-
-            {usuarios.map((u) => (
-              <div
-                key={u.id}
-                className="usuario-item"
-              >
-
-                <div>
-                  <strong>{u.email}</strong>
-
-                  <p>
-                    {u.role}
-                  </p>
-                </div>
-
-                <button
-                  className="btn-excluir"
-                  onClick={() => excluirUsuario(u.id)}
-                >
-                  Excluir
-                </button>
-
-              </div>
-            ))}
-
-          </div>
+          <button
+            onClick={logout}
+            style={logoutButton}
+          >
+            Sair
+          </button>
 
         </div>
-
       </div>
 
+      {/* TABELA */}
+      <div
+        style={{
+          background: '#1f1f1f',
+          borderRadius: 16,
+          overflow: 'hidden',
+          border: '1px solid #333'
+        }}
+      >
+
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse'
+          }}
+        >
+          <thead
+            style={{
+              background: '#2a2a2a'
+            }}
+          >
+            <tr>
+              <th style={thStyle}>Email</th>
+              <th style={thStyle}>Usuário</th>
+              <th style={thStyle}>Função</th>
+              <th style={thStyle}>Criado em</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {usuarios.map((u) => (
+              <tr
+                key={u.id}
+                style={{
+                  borderTop: '1px solid #333'
+                }}
+              >
+                <td style={tdStyle}>
+                  {u.email}
+                </td>
+
+                <td style={tdStyle}>
+                  {u.username || '-'}
+                </td>
+
+                <td style={tdStyle}>
+                  {u.role}
+                </td>
+
+                <td style={tdStyle}>
+                  {new Date(u.created_at).toLocaleDateString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+      </div>
     </div>
   );
 }
+
+const thStyle = {
+  padding: 16,
+  textAlign: 'left',
+  color: '#FFD700',
+  fontSize: 14
+};
+
+const tdStyle = {
+  padding: 16,
+  fontSize: 15
+};
+
+const buttonStyle = {
+  padding: '12px 18px',
+  borderRadius: 10,
+  border: 'none',
+  background: '#FFD700',
+  color: '#000',
+  fontWeight: 'bold',
+  cursor: 'pointer'
+};
+
+const menuButton = {
+  padding: '12px 18px',
+  borderRadius: 10,
+  border: 'none',
+  background: '#444',
+  color: '#fff',
+  fontWeight: 'bold',
+  cursor: 'pointer'
+};
+
+const logoutButton = {
+  padding: '12px 18px',
+  borderRadius: 10,
+  border: 'none',
+  background: '#d32f2f',
+  color: '#fff',
+  fontWeight: 'bold',
+  cursor: 'pointer'
+};
+```
