@@ -1,11 +1,14 @@
-import { audit } from '../lib/audit';
+const isPriv = isPrivileged(role);
 
-await audit({
-  acao: 'CREATE_TOPICO',
-  entidade: 'topicos',
-  usuario: user,
-  status: 'success',
-  payload: {
-    titulo: titulo || null
-  }
-});
+const { data, error } = await supabaseAdmin
+  .from('topicos')
+  .insert({
+    title: titulo.trim(),
+    content: conteudo,
+    category_id: categoriaId,
+    status: isPriv ? 'approved' : 'pending',
+    user_id: user.id,
+    user_email: user.email
+  })
+  .select()
+  .single();
