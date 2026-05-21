@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
 
 export default function Base() {
+  const router = useRouter();
+
   const [user, setUser] = useState(null);
   const [role, setRole] = useState("user");
 
   const [topicos, setTopicos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [comentariosMap, setComentariosMap] = useState({});
-
-  const [busca, setBusca] = useState("");
-  const [categoriaFiltro, setCategoriaFiltro] = useState("");
 
   useEffect(() => {
     init();
@@ -19,28 +19,39 @@ export default function Base() {
   async function init() {
     const { data: { session } } = await supabase.auth.getSession();
 
-    const currentUser = session?.user || null;
-    setUser(currentUser);
-
-    if (currentUser) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", currentUser.id)
-        .single();
-
-      setRole(profile?.role || "user");
+    if (!session?.user) {
+      router.push("/login");
+      return;
     }
+
+    setUser(session.user);
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", session.user.id)
+      .single();
+
+    setRole(profile?.role || "user");
 
     loadData();
   }
 
   async function loadData() {
-    const { data: tops } = await supabase.from("topicos").select("*");
-    const { data: cats } = await supabase.from("categorias").select("*");
-    const { data: coms } = await supabase.from("comentarios").select("*");
+    const { data: tops } = await supabase
+      .from("topicos")
+      .select("*");
+
+    const { data: cats } = await supabase
+      .from("categorias")
+      .select("*");
+
+    const { data: coms } = await supabase
+      .from("comentarios")
+      .select("*");
 
     const map = {};
+
     (coms || []).forEach(c => {
       if (!map[c.topico_id]) map[c.topico_id] = [];
       map[c.topico_id].push(c);
@@ -51,11 +62,16 @@ export default function Base() {
     setComentariosMap(map);
   }
 
+  async function logout() {
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
   async function comentar(topicoId) {
     const textarea = document.getElementById(`comentario-${topicoId}`);
     const conteudo = textarea.value;
 
-    if (!conteudo.trim()) return alert("Digite um comentário");
+    if (!conteudo.trim()) return;
 
     await supabase.from("comentarios").insert({
       conteudo,
@@ -69,45 +85,51 @@ export default function Base() {
     loadData();
   }
 
-  const topicosFiltrados = topicos.filter(t => {
-    const texto = `${t.title} ${t.content}`.toLowerCase();
-    return texto.includes(busca.toLowerCase());
-  });
-
   return (
-    <div className="base-container">
+    <div style={{ padding: 20 }}>
 
-      <h1>Base de Conhecimento</h1>
+      {/* HEADER LIMPO */}
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <h2>Base de Conhecimento</h2>
 
-      <input
-        placeholder="Pesquisar..."
-        value={busca}
-        onChange={e => setBusca(e.target.value)}
-      />
+        <div>
+          <span style={{ marginRight: 10 }}>{user?.email}</span>
+          <button onClick={() => router.push("/dashboard")}>
+            Menu
+          </button>
+          <button onClick={logout}>Sair</button>
+        </div>
+      </div>
 
-      {topicosFiltrados.map(t => (
-        <div key={t.id} style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}>
+      {/* TÓPICOS */}
+      {topicos.map(t => (
+        <div key={t.id} style={{ border: "1px solid #ccc", marginTop: 20, padding: 10 }}>
 
-          <h2>{t.title}</h2>
+          <h3>{t.title}</h3>
           <p>{t.content}</p>
 
-          <h4>Comentários</h4>
+          {/* COMENTÁRIOS */}
+          <div>
+            <h4>Comentários</h4>
 
-          {(comentariosMap[t.id] || []).map(c => (
-            <div key={c.id}>
-              <strong>{c.user_email}</strong>
-              <p>{c.conteudo}</p>
-            </div>
-          ))}
+            {(comentariosMap[t.id] || []).map(c => (
+              <div key={c.id} style={{ marginBottom: 10 }}>
+                <strong>{c.user_email}</strong>
+                <p>{c.conteudo}</p>
+              </div>
+            ))}
 
-          {user && (
-            <div>
-              <textarea id={`comentario-${t.id}`} />
-              <button onClick={() => comentar(t.id)}>
-                Comentar
-              </button>
-            </div>
-          )}
+            {/* INPUT SEMPRE VISÍVEL */}
+            {user && (
+              <div>
+                <textarea id={`comentario-${t.id}`} />
+                <button onClick={() => comentar(t.id)}>
+                  Comentar
+                </button>
+              </div>
+            )}
+
+          </div>
 
         </div>
       ))}
