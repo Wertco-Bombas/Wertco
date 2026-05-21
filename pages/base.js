@@ -1,520 +1,689 @@
-// pages/base.js
-
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 export default function Base() {
 
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState('user');
+
   const [topicos, setTopicos] = useState([]);
   const [categorias, setCategorias] = useState([]);
-  const [comentariosMap, setComentariosMap] = useState({});
-  const [commentState, setCommentState] = useState({});
-  const [user, setUser] = useState(null);
-  const [userRole, setUserRole] = useState('user');
-  const [popup, setPopup] = useState(null);
-  const [loading, setLoading] = useState(true);
+
+  const [busca, setBusca] = useState('');
+  const [categoriaFiltro, setCategoriaFiltro] = useState('');
+
+  const [comentarios, setComentarios] = useState({});
 
   useEffect(() => {
     init();
   }, []);
 
-  // =========================
-  // INIT
-  // =========================
   async function init() {
 
-    try {
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
 
-      const { data, error } = await supabase.auth.getSession();
+    if (session?.user) {
 
-      console.log('SESSION:', data, error);
+      setUser(session.user);
 
-      const session = data?.session;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
 
-      // usuário logado
-      if (session?.user) {
-
-        setUser({
-          id: session.user.id,
-          email: session.user.email
-        });
-
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-
-        console.log('PROFILE:', profile, profileError);
-
-        setUserRole(profile?.role || 'user');
-      }
-
-      // carrega dados mesmo sem login
-      await loadData();
-
-    } catch (err) {
-
-      console.error('INIT ERROR:', err);
-
-    } finally {
-
-      setLoading(false);
+      setRole(profile?.role || 'user');
     }
+
+    loadData();
   }
 
-  // =========================
-  // LOAD DATA
-  // =========================
   async function loadData() {
 
-    try {
-
-      // categorias
-      const {
-        data: cats,
-        error: catsError
-      } = await supabase
+    const { data: cats } =
+      await supabase
         .from('categorias')
         .select('*');
 
-      console.log('CATEGORIAS:', cats, catsError);
-
-      // topicos
-      const {
-        data: tops,
-        error: topsError
-      } = await supabase
+    const { data: tops } =
+      await supabase
         .from('topicos')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', {
+          ascending: false
+        });
 
-      console.log('TOPICOS:', tops, topsError);
-
-      // comentarios
-      const {
-        data: coms,
-        error: comsError
-      } = await supabase
+    const { data: coms } =
+      await supabase
         .from('comentarios')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', {
+          ascending: false
+        });
 
-      console.log('COMENTARIOS:', coms, comsError);
+    const map = {};
 
-      // cria mapa
-      const map = {};
+    (coms || []).forEach(c => {
 
-      (coms || []).forEach(c => {
-
-        if (!map[c.topico_id]) {
-          map[c.topico_id] = [];
-        }
-
-        map[c.topico_id].push(c);
-      });
-
-      setCategorias(cats || []);
-      setTopicos(tops || []);
-      setComentariosMap(map);
-
-    } catch (err) {
-
-      console.error('LOAD DATA ERROR:', err);
-    }
-  }
-
-  // =========================
-  // PERMISSÃO
-  // =========================
-  const isPrivileged =
-    ['admin', 'supervisor'].includes(userRole);
-
-  // =========================
-  // LOCAL COMMENT
-  // =========================
-  function setLocalComment(topicoId, patch) {
-
-    setCommentState(prev => ({
-      ...prev,
-      [topicoId]: {
-        ...(prev[topicoId] || { text: '' }),
-        ...patch
+      if (!map[c.topico_id]) {
+        map[c.topico_id] = [];
       }
-    }));
+
+      map[c.topico_id].push(c);
+    });
+
+    setCategorias(cats || []);
+    setTopicos(tops || []);
+    setComentarios(map);
   }
 
-  // =========================
-  // ADD COMMENT
-  // =========================
-  async function handleAddComment(topicoId) {
+  async function logout() {
 
-    if (!user) {
-      return alert('Faça login');
+    await supabase.auth.signOut();
+
+    location.href = '/login';
+  }
+
+  async function comentar(topicoId) {
+
+    const texto =
+      document.getElementById(
+        `comentario-${topicoId}`
+      ).value;
+
+    const file =
+      document.getElementById(
+        `foto-${topicoId}`
+      ).files[0];
+
+    let imagem = null;
+
+    if (file) {
+
+      const nome =
+        Date.now() + '-' + file.name;
+
+      const { error } =
+        await supabase.storage
+          .from('comentarios')
+          .upload(nome, file);
+
+      if (!error) {
+
+        const { data } =
+          supabase.storage
+            .from('comentarios')
+            .getPublicUrl(nome);
+
+        imagem = data.publicUrl;
+      }
     }
 
-    const text =
-      commentState[topicoId]?.text?.trim();
-
-    if (!text) {
-      return alert('Digite um comentário');
-    }
-
-    const { error } = await supabase
+    await supabase
       .from('comentarios')
       .insert({
-        conteudo: text,
+
+        conteudo: texto,
         topico_id: topicoId,
         usuario_id: user.id,
         user_email: user.email,
-        approved: isPrivileged
+        approved:
+          role === 'admin' ||
+          role === 'supervisor',
+
+        imagem
       });
 
-    if (error) {
-
-      console.error(error);
-      return alert(error.message);
-    }
-
-    setPopup(
-      isPrivileged
-        ? 'Comentário publicado'
-        : 'Comentário enviado para aprovação'
-    );
-
-    setLocalComment(topicoId, { text: '' });
-
-    await loadData();
+    loadData();
   }
 
-  // =========================
-  // APPROVE COMMENT
-  // =========================
-  async function approveComment(id) {
+  async function aprovar(id) {
 
-    const { error } = await supabase
+    await supabase
       .from('comentarios')
-      .update({ approved: true })
+      .update({
+        approved: true
+      })
       .eq('id', id);
 
-    if (error) {
-
-      console.error(error);
-      return alert(error.message);
-    }
-
-    await loadData();
+    loadData();
   }
 
-  // =========================
-  // DELETE COMMENT
-  // =========================
-  async function deleteComment(id) {
+  async function excluirComentario(id) {
 
-    const confirmDelete =
-      confirm('Excluir comentário?');
-
-    if (!confirmDelete) return;
-
-    const { error } = await supabase
+    await supabase
       .from('comentarios')
       .delete()
       .eq('id', id);
 
-    if (error) {
-
-      console.error(error);
-      return alert(error.message);
-    }
-
-    await loadData();
+    loadData();
   }
 
-  // =========================
-  // DEBUG
-  // =========================
-  console.log({
-    user,
-    userRole,
-    topicos,
-    categorias,
-    comentariosMap
-  });
+  async function editarComentario(c) {
 
-  // =========================
-  // LOADING
-  // =========================
-  if (loading) {
+    const novo =
+      prompt(
+        'Editar comentário',
+        c.conteudo
+      );
 
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#111',
-        color: '#fff',
-        padding: 40
-      }}>
-        Carregando...
-      </div>
-    );
+    if (!novo) return;
+
+    await supabase
+      .from('comentarios')
+      .update({
+        conteudo: novo
+      })
+      .eq('id', c.id);
+
+    loadData();
   }
 
-  // =========================
-  // PAGE
-  // =========================
+  const topicosFiltrados =
+    topicos.filter(t => {
+
+      const categoria =
+        categorias.find(
+          c => c.id === t.categoria_id
+        );
+
+      const texto =
+        (
+          t.titulo +
+          ' ' +
+          t.conteudo +
+          ' ' +
+          (categoria?.nome || '')
+        ).toLowerCase();
+
+      const bateBusca =
+        texto.includes(
+          busca.toLowerCase()
+        );
+
+      const bateCategoria =
+        !categoriaFiltro ||
+        t.categoria_id === categoriaFiltro;
+
+      return (
+        bateBusca &&
+        bateCategoria
+      );
+    });
+
   return (
 
-    <div style={{
-      display: 'flex',
-      minHeight: '100vh',
-      background: '#111',
-      color: '#fff'
-    }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#0f172a',
+        color: '#fff',
+        padding: 40
+      }}
+    >
 
-      {/* POPUP */}
-      {popup && (
+      {/* TOPO */}
 
-        <div style={{
-          position: 'fixed',
-          top: 20,
-          right: 20,
-          background: '#222',
-          padding: 12,
-          border: '1px solid #444',
-          zIndex: 999,
-          borderRadius: 8
-        }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 40
+        }}
+      >
 
-          {popup}
+        <div>
 
-          <button
-            onClick={() => setPopup(null)}
+          <h1
             style={{
-              marginLeft: 10
+              fontSize: 36,
+              marginBottom: 5
             }}
           >
-            X
+            Base de Conhecimento
+          </h1>
+
+          <div
+            style={{
+              color: '#94a3b8'
+            }}
+          >
+            Pesquisa interna de tópicos
+          </div>
+
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            gap: 15,
+            alignItems: 'center'
+          }}
+        >
+
+          <div>
+            {user?.email}
+          </div>
+
+          <button
+            onClick={logout}
+            style={btnDanger}
+          >
+            Sair
           </button>
 
         </div>
-      )}
-
-      {/* LEFT */}
-      <div style={{
-        flex: 3,
-        padding: 20
-      }}>
-
-        <h1>Base de Conhecimento</h1>
-
-        {topicos.length === 0 && (
-
-          <div style={{
-            marginTop: 20,
-            color: '#999'
-          }}>
-            Nenhum tópico encontrado
-          </div>
-        )}
-
-        {topicos.map(t => (
-
-          <div
-            key={t.id}
-            style={{
-              marginBottom: 25,
-              padding: 15,
-              border: '1px solid #333',
-              borderRadius: 8
-            }}
-          >
-
-            <h2>{t.titulo}</h2>
-
-            {/* categoria */}
-            <div style={{
-              fontSize: 12,
-              color: '#aaa',
-              marginBottom: 10
-            }}>
-              🏷 Categoria:{' '}
-              {
-                categorias.find(
-                  c => c.id === t.categoria_id
-                )?.nome || 'Sem categoria'
-              }
-            </div>
-
-            <p>{t.conteudo}</p>
-
-            {/* COMMENTS */}
-            {(comentariosMap[t.id] || [])
-              .filter(c =>
-                isPrivileged
-                  ? true
-                  : c.approved
-              )
-              .map(c => {
-
-                const canModerate =
-                  isPrivileged;
-
-                const isOwner =
-                  user?.id === c.usuario_id;
-
-                return (
-
-                  <div
-                    key={c.id}
-                    style={{
-                      marginTop: 10,
-                      padding: 10,
-                      background: '#222',
-                      borderRadius: 6
-                    }}
-                  >
-
-                    <b>
-                      {c.user_email || 'Anônimo'}
-                    </b>
-
-                    <p>{c.conteudo}</p>
-
-                    <small>
-                      {c.approved
-                        ? 'Aprovado'
-                        : 'Pendente'}
-                    </small>
-
-                    <div style={{
-                      display: 'flex',
-                      gap: 10,
-                      marginTop: 10
-                    }}>
-
-                      {isOwner && !c.approved && (
-
-                        <button
-                          onClick={async () => {
-
-                            const novo =
-                              prompt(
-                                'Editar comentário:',
-                                c.conteudo
-                              );
-
-                            if (!novo) return;
-
-                            await supabase
-                              .from('comentarios')
-                              .update({
-                                conteudo: novo
-                              })
-                              .eq('id', c.id);
-
-                            await loadData();
-                          }}
-                        >
-                          Editar
-                        </button>
-                      )}
-
-                      {canModerate && (
-                        <>
-                          <button
-                            onClick={() =>
-                              approveComment(c.id)
-                            }
-                          >
-                            Aprovar
-                          </button>
-
-                          <button
-                            onClick={() =>
-                              deleteComment(c.id)
-                            }
-                          >
-                            Excluir
-                          </button>
-                        </>
-                      )}
-
-                    </div>
-
-                  </div>
-                );
-              })}
-
-            {/* INPUT */}
-            <div style={{
-              marginTop: 15
-            }}>
-
-              <textarea
-                style={{
-                  width: '100%',
-                  minHeight: 80,
-                  padding: 10,
-                  background: '#222',
-                  color: '#fff',
-                  border: '1px solid #444'
-                }}
-                value={
-                  commentState[t.id]?.text || ''
-                }
-                onChange={(e) =>
-                  setLocalComment(
-                    t.id,
-                    { text: e.target.value }
-                  )
-                }
-                placeholder="Comentário..."
-              />
-
-              <button
-                style={{
-                  marginTop: 10
-                }}
-                onClick={() =>
-                  handleAddComment(t.id)
-                }
-              >
-                Enviar
-              </button>
-
-            </div>
-
-          </div>
-        ))}
 
       </div>
 
-      {/* RIGHT */}
-      <div style={{
-        flex: 1,
-        borderLeft: '1px solid #333',
-        padding: 20
-      }}>
+      {/* PESQUISA */}
 
-        <h3>Categorias</h3>
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: '0 auto'
+        }}
+      >
 
-        {categorias.length === 0 && (
-          <div>Nenhuma categoria</div>
-        )}
+        <input
+          placeholder='Pesquisar tópicos...'
+          value={busca}
+          onChange={e =>
+            setBusca(e.target.value)
+          }
+          style={searchStyle}
+        />
 
-        {categorias.map(c => (
+        {/* FILTROS */}
 
-          <div
-            key={c.id}
-            style={{
-              marginBottom: 10
-            }}
+        <div
+          style={{
+            display: 'flex',
+            gap: 15,
+            marginTop: 20,
+            marginBottom: 40,
+            flexWrap: 'wrap'
+          }}
+        >
+
+          <select
+            value={categoriaFiltro}
+            onChange={e =>
+              setCategoriaFiltro(
+                e.target.value
+              )
+            }
+            style={selectStyle}
           >
-            {c.nome}
-          </div>
-        ))}
+
+            <option value=''>
+              Todas Categorias
+            </option>
+
+            {categorias.map(c => (
+
+              <option
+                key={c.id}
+                value={c.id}
+              >
+                {c.nome}
+              </option>
+            ))}
+
+          </select>
+
+          {(role === 'admin' ||
+            role === 'supervisor') && (
+            <>
+              <button
+                style={btn}
+                onClick={() =>
+                  location.href =
+                    '/nova-categoria'
+                }
+              >
+                Nova Categoria
+              </button>
+
+              <button
+                style={btn}
+                onClick={() =>
+                  location.href =
+                    '/novo-topico'
+                }
+              >
+                Novo Tópico
+              </button>
+
+              <button
+                style={btnDanger}
+                onClick={() =>
+                  location.href =
+                    '/excluir-categoria'
+                }
+              >
+                Excluir Categoria
+              </button>
+            </>
+          )}
+
+        </div>
+
+        {/* TOPICOS */}
+
+        <div
+          style={{
+            display: 'grid',
+            gap: 25
+          }}
+        >
+
+          {topicosFiltrados.map(t => {
+
+            const categoria =
+              categorias.find(
+                c =>
+                  c.id ===
+                  t.categoria_id
+              );
+
+            return (
+
+              <div
+                key={t.id}
+                style={card}
+              >
+
+                <div
+                  style={{
+                    marginBottom: 20
+                  }}
+                >
+
+                  <div
+                    style={{
+                      display: 'inline-block',
+                      background: '#2563eb',
+                      padding:
+                        '6px 12px',
+                      borderRadius: 30,
+                      fontSize: 12,
+                      marginBottom: 15
+                    }}
+                  >
+                    {categoria?.nome}
+                  </div>
+
+                  <h2>
+                    {t.titulo}
+                  </h2>
+
+                  <p
+                    style={{
+                      color: '#cbd5e1',
+                      lineHeight: 1.7
+                    }}
+                  >
+                    {t.conteudo}
+                  </p>
+
+                </div>
+
+                {/* COMENTARIOS */}
+
+                <div>
+
+                  <h3>
+                    Comentários
+                  </h3>
+
+                  {(comentarios[t.id] || [])
+                    .filter(c =>
+                      role ===
+                        'admin' ||
+                      role ===
+                        'supervisor'
+                        ? true
+                        : c.approved
+                    )
+                    .map(c => {
+
+                      const dono =
+                        user?.id ===
+                        c.usuario_id;
+
+                      return (
+
+                        <div
+                          key={c.id}
+                          style={comentario}
+                        >
+
+                          <b>
+                            {
+                              c.user_email
+                            }
+                          </b>
+
+                          <p>
+                            {
+                              c.conteudo
+                            }
+                          </p>
+
+                          {c.imagem && (
+
+                            <img
+                              src={
+                                c.imagem
+                              }
+                              style={{
+                                width:
+                                  250,
+                                borderRadius: 10,
+                                marginTop: 10
+                              }}
+                            />
+                          )}
+
+                          <div
+                            style={{
+                              display:
+                                'flex',
+                              gap: 10,
+                              marginTop: 15
+                            }}
+                          >
+
+                            {dono && (
+                              <>
+                                <button
+                                  style={
+                                    btn
+                                  }
+                                  onClick={() =>
+                                    editarComentario(
+                                      c
+                                    )
+                                  }
+                                >
+                                  Editar
+                                </button>
+
+                                <button
+                                  style={
+                                    btnDanger
+                                  }
+                                  onClick={() =>
+                                    excluirComentario(
+                                      c.id
+                                    )
+                                  }
+                                >
+                                  Excluir
+                                </button>
+                              </>
+                            )}
+
+                            {!c.approved &&
+                              (role ===
+                                'admin' ||
+                                role ===
+                                  'supervisor') && (
+                                <button
+                                  style={
+                                    btnSuccess
+                                  }
+                                  onClick={() =>
+                                    aprovar(
+                                      c.id
+                                    )
+                                  }
+                                >
+                                  Aprovar
+                                </button>
+                              )}
+
+                          </div>
+
+                        </div>
+                      );
+                    })}
+
+                  {/* NOVO COMENTARIO */}
+
+                  {user && (
+
+                    <div
+                      style={{
+                        marginTop: 25
+                      }}
+                    >
+
+                      <textarea
+                        id={`comentario-${t.id}`}
+                        placeholder='Escreva um comentário...'
+                        style={
+                          textarea
+                        }
+                      />
+
+                      <input
+                        type='file'
+                        id={`foto-${t.id}`}
+                        style={{
+                          marginTop: 15
+                        }}
+                      />
+
+                      <button
+                        style={{
+                          ...btn,
+                          marginTop: 15
+                        }}
+                        onClick={() =>
+                          comentar(
+                            t.id
+                          )
+                        }
+                      >
+                        Comentar
+                      </button>
+
+                    </div>
+                  )}
+
+                </div>
+
+              </div>
+            );
+          })}
+
+        </div>
 
       </div>
 
     </div>
   );
 }
+
+const card = {
+
+  background: '#1e293b',
+  padding: 30,
+  borderRadius: 20,
+  border: '1px solid #334155'
+};
+
+const comentario = {
+
+  background: '#0f172a',
+  padding: 20,
+  borderRadius: 15,
+  marginTop: 15
+};
+
+const btn = {
+
+  background: '#2563eb',
+  color: '#fff',
+  border: 0,
+  padding: '10px 18px',
+  borderRadius: 10,
+  cursor: 'pointer'
+};
+
+const btnDanger = {
+
+  background: '#dc2626',
+  color: '#fff',
+  border: 0,
+  padding: '10px 18px',
+  borderRadius: 10,
+  cursor: 'pointer'
+};
+
+const btnSuccess = {
+
+  background: '#16a34a',
+  color: '#fff',
+  border: 0,
+  padding: '10px 18px',
+  borderRadius: 10,
+  cursor: 'pointer'
+};
+
+const searchStyle = {
+
+  width: '100%',
+  padding: 18,
+  borderRadius: 15,
+  border: '1px solid #334155',
+  background: '#1e293b',
+  color: '#fff',
+  fontSize: 16
+};
+
+const selectStyle = {
+
+  padding: 14,
+  borderRadius: 10,
+  background: '#1e293b',
+  color: '#fff',
+  border: '1px solid #334155'
+};
+
+const textarea = {
+
+  width: '100%',
+  minHeight: 120,
+  background: '#1e293b',
+  color: '#fff',
+  border: '1px solid #334155',
+  borderRadius: 15,
+  padding: 20,
+  fontSize: 15
+};
