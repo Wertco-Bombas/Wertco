@@ -7,6 +7,7 @@ export default function Dashboard() {
 
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+
   const [avisos, setAvisos] = useState([]);
   const [novoAviso, setNovoAviso] = useState("");
 
@@ -24,13 +25,13 @@ export default function Dashboard() {
 
     setUser(user);
 
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .single();
 
-    setProfile(profile);
+    setProfile(profileData);
 
     loadAvisos();
   }
@@ -62,65 +63,194 @@ export default function Dashboard() {
   }
 
   const isAdmin =
-    profile?.role === "admin" || profile?.role === "supervisor";
+    profile?.role === "admin" ||
+    profile?.role === "supervisor";
 
   return (
-    <div style={{ padding: 20 }}>
+    <div
+      style={{
+        padding: 30,
+        maxWidth: 1400,
+        margin: "0 auto"
+      }}
+    >
 
-      <h1>Dashboard</h1>
+      {/* TOPO */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 40
+        }}
+      >
+        <div>
+          <h1 style={{ margin: 0 }}>
+            Dashboard
+          </h1>
 
-      {/* MENU PRINCIPAL */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+          <p style={{ opacity: 0.7 }}>
+            Bem-vindo {user?.email}
+          </p>
+        </div>
 
-        <button onClick={() => router.push("/base")}>
-          Base de Conhecimento
-        </button>
-
-        <button onClick={() => router.push("/auditoria")}>
-          Auditoria
-        </button>
-
-        <button onClick={() => router.push("/usuarios")}>
-          Usuários
-        </button>
-
-        <button onClick={() => router.push("/treinamento")}>
-          Treinamento
-        </button>
-
-        <button onClick={() => router.push("/atendimento")}>
-          Atendimento
-        </button>
-
-        <button onClick={logout}>
+        <button
+          onClick={logout}
+          style={{
+            padding: "12px 20px",
+            fontSize: 16,
+            borderRadius: 8,
+            border: "none",
+            background: "#d32f2f",
+            color: "#fff",
+            cursor: "pointer"
+          }}
+        >
           Sair
+        </button>
+      </div>
+
+      {/* BOTÕES GRANDES */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          gap: 20,
+          marginBottom: 50
+        }}
+      >
+
+        <button
+          onClick={() => router.push("/base")}
+          style={cardStyle}
+        >
+          📚
+          <span>Base de Conhecimento</span>
+        </button>
+
+        <button
+          onClick={() => router.push("/auditoria")}
+          style={cardStyle}
+        >
+          📊
+          <span>Auditoria</span>
+        </button>
+
+        <button
+          onClick={() => router.push("/usuarios")}
+          style={cardStyle}
+        >
+          👥
+          <span>Usuários</span>
+        </button>
+
+        <button
+          onClick={() => router.push("/treinamento")}
+          style={cardStyle}
+        >
+          🎓
+          <span>Treinamento</span>
+        </button>
+
+        <button
+          onClick={() => router.push("/atendimento")}
+          style={cardStyle}
+        >
+          💬
+          <span>Atendimento</span>
         </button>
 
       </div>
 
       {/* AVISOS */}
-      <h2>📢 Informações Importantes</h2>
+      <div
+        style={{
+          background: "#1e1e1e",
+          padding: 25,
+          borderRadius: 12
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>
+          📢 Informações Importantes
+        </h2>
 
-      {isAdmin && (
-        <div style={{ marginBottom: 20 }}>
-          <textarea
-            value={novoAviso}
-            onChange={(e) => setNovoAviso(e.target.value)}
-            placeholder="Novo aviso..."
-            style={{ width: "100%", height: 80 }}
-          />
-          <button onClick={criarAviso}>
-            Publicar aviso
-          </button>
-        </div>
-      )}
+        {isAdmin && (
+          <div style={{ marginBottom: 25 }}>
 
-      {avisos.map((a) => (
-        <div key={a.id} style={{ padding: 10, border: "1px solid #ccc", marginBottom: 10 }}>
-          {a.conteudo}
-        </div>
-      ))}
+            <textarea
+              value={novoAviso}
+              onChange={(e) => setNovoAviso(e.target.value)}
+              placeholder="Digite um aviso..."
+              style={{
+                width: "100%",
+                minHeight: 120,
+                padding: 15,
+                borderRadius: 10,
+                border: "1px solid #444",
+                background: "#111",
+                color: "#fff",
+                fontSize: 16,
+                marginBottom: 10
+              }}
+            />
+
+            <button
+              onClick={criarAviso}
+              style={{
+                padding: "12px 18px",
+                borderRadius: 8,
+                border: "none",
+                background: "#f5c518",
+                color: "#000",
+                fontWeight: "bold",
+                cursor: "pointer"
+              }}
+            >
+              Publicar Aviso
+            </button>
+
+          </div>
+        )}
+
+        {avisos.length === 0 && (
+          <p>Nenhum aviso publicado.</p>
+        )}
+
+        {avisos.map((a) => (
+          <div
+            key={a.id}
+            style={{
+              background: "#2a2a2a",
+              padding: 15,
+              borderRadius: 10,
+              marginBottom: 10
+            }}
+          >
+            {a.conteudo}
+          </div>
+        ))}
+
+      </div>
 
     </div>
   );
 }
+
+const cardStyle = {
+  height: 180,
+  borderRadius: 16,
+  border: "none",
+  background: "#242424",
+  color: "#fff",
+  fontSize: 24,
+  fontWeight: "bold",
+  cursor: "pointer",
+
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: 15,
+
+  transition: "0.2s"
+};
