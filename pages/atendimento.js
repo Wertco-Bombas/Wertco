@@ -1,11 +1,30 @@
+import Layout from "../components/Layout";
+
 export default function Atendimento() {
   return (
-    <div>
-      <h1>Atendimento</h1>
+    <Layout>
+      <div className="container">
+        <div className="card">
+          <h1 className="topicTitle">Atendimento</h1>
+          <p className="description">Suporte e acompanhamento de chamados.</p>
 
-      <p>
-        Aqui ficará o fluxo guiado de suporte para o atendente.
-      </p>
-    </div>
+          <section>
+            <h2 className="sectionTitle">Chamados em aberto</h2>
+            <ul>
+              <li className="comment">Ticket #123 - Problema de login</li>
+              <li className="comment">Ticket #124 - Erro no relatório</li>
+              <li className="comment">Ticket #125 - Solicitação de treinamento</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="sectionTitle">Histórico</h2>
+            <p className="description">
+              Consulte chamados resolvidos e feedbacks dos clientes.
+            </p>
+          </section>
+        </div>
+      </div>
+    </Layout>
   );
 }
